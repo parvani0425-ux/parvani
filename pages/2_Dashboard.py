@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-import json
 import plotly.express as px
+import plotly.figure_factory as ff
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
@@ -10,142 +10,128 @@ st.set_page_config(page_title="Dashboard", layout="wide")
 
 st.title("📊 AI Data Analytics Dashboard")
 
-# ---------------- FILE UPLOAD ----------------
-uploaded = st.file_uploader("Upload your CSV file")
-
-def save_history(file_name):
-    try:
-        history = json.load(open("history.json"))
-    except:
-        history = []
-    history.append(file_name)
-    json.dump(history, open("history.json", "w"))
+uploaded = st.file_uploader("Upload CSV file")
 
 if uploaded:
     df = pd.read_csv(uploaded)
 
-    st.subheader("📄 Raw Data Preview")
+    # ---------------- RAW DATA ----------------
+    st.subheader("📄 Raw Data")
     st.dataframe(df.head())
 
-    # ---------------- DATA CLEANING ----------------
-    st.subheader("🧹 Data Cleaning Report")
+    # ---------------- CLEANING ----------------
+    st.subheader("🧹 Data Cleaning")
 
-    before_rows = df.shape[0]
+    before = df.shape[0]
     nulls = df.isnull().sum().sum()
     duplicates = df.duplicated().sum()
 
-    df = df.drop_duplicates()
-    df = df.dropna()
+    df_clean = df.drop_duplicates().dropna()
 
-    after_rows = df.shape[0]
+    after = df_clean.shape[0]
 
     st.success(f"""
-    ✔ Removed {before_rows - after_rows} rows  
+    ✔ Removed rows: {before - after}  
     ✔ Null values found: {nulls}  
-    ✔ Duplicate rows removed: {duplicates}
+    ✔ Duplicates removed: {duplicates}
     """)
 
-    numeric_df = df.select_dtypes(include='number')
+    st.subheader("🧼 Cleaned Data")
+    st.dataframe(df_clean.head())
+
+    numeric = df_clean.select_dtypes(include='number')
 
     # ---------------- KPI CARDS ----------------
-    st.subheader("📊 Key Performance Indicators")
+    st.subheader("📊 Key Metrics")
 
-    if not numeric_df.empty:
-        cols = st.columns(min(5, len(numeric_df.columns)))
+    if not numeric.empty:
+        cols = st.columns(5)
 
-        for i, col in enumerate(numeric_df.columns[:5]):
-            value = round(numeric_df[col].mean(), 2)
-            cols[i].metric(label=f"📈 {col}", value=value)
+        for i, col in enumerate(numeric.columns[:5]):
+            cols[i].metric(
+                label=f"{col}",
+                value=round(numeric[col].mean(), 2),
+                delta=f"Max: {round(numeric[col].max(),2)}"
+            )
+
+    # ---------------- CHARTS ----------------
+    st.subheader("📊 Visual Analytics (5 Charts)")
+
+    if len(numeric.columns) >= 2:
+
+        col1, col2 = st.columns(2)
+
+        # 1️⃣ Scatter Plot
+        with col1:
+            fig1 = px.scatter(df_clean, x=numeric.columns[0], y=numeric.columns[1],
+                              title="Scatter Plot (Relationship)")
+            st.plotly_chart(fig1, use_container_width=True)
+
+        # 2️⃣ Line Chart
+        with col2:
+            fig2 = px.line(df_clean, y=numeric.columns[0],
+                           title="Trend Line")
+            st.plotly_chart(fig2, use_container_width=True)
+
+        col3, col4 = st.columns(2)
+
+        # 3️⃣ Histogram
+        with col3:
+            fig3 = px.histogram(df_clean, x=numeric.columns[0],
+                                title="Distribution")
+            st.plotly_chart(fig3, use_container_width=True)
+
+        # 4️⃣ Box Plot
+        with col4:
+            fig4 = px.box(df_clean, y=numeric.columns[0],
+                          title="Outliers Detection")
+            st.plotly_chart(fig4, use_container_width=True)
+
+        # 5️⃣ Correlation Heatmap
+        st.subheader("🔥 Correlation Heatmap")
+        corr = numeric.corr()
+        fig5 = px.imshow(corr, text_auto=True, title="Feature Correlation")
+        st.plotly_chart(fig5, use_container_width=True)
 
     # ---------------- REGRESSION ----------------
-    if len(numeric_df.columns) >= 2:
-        st.subheader("🤖 Regression Analysis")
+    if len(numeric.columns) >= 2:
+        st.subheader("🤖 Regression & Prediction")
 
-        X = numeric_df.iloc[:, :-1]
-        y = numeric_df.iloc[:, -1]
+        X = numeric.iloc[:, :-1]
+        y = numeric.iloc[:, -1]
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
         model = LinearRegression()
         model.fit(X_train, y_train)
 
-        predictions = model.predict(X_test)
-        score = r2_score(y_test, predictions)
+        preds = model.predict(X_test)
+        score = r2_score(y_test, preds)
 
-        st.success(f"Model Accuracy (R² Score): {round(score, 3)}")
+        st.success(f"Model Accuracy (R²): {round(score, 3)}")
 
-    # ---------------- SMART VISUALIZATION ----------------
-    st.subheader("📊 Smart Visualizations")
-
-    cols = df.columns.tolist()
-
-    x_axis = st.selectbox("Select X-axis", cols)
-    y_axis = st.selectbox("Select Y-axis (optional)", [None] + cols)
-
-    x_type = df[x_axis].dtype
-    y_type = df[y_axis].dtype if y_axis else None
-
-    fig = None
-    chart_type = ""
-
-    # AI-style recommendation
-    if y_axis and str(x_type) != "object" and str(y_type) != "object":
-        fig = px.scatter(df, x=x_axis, y=y_axis)
-        chart_type = "Scatter Plot (Best for numeric relationships)"
-
-    elif y_axis and (str(x_type) == "object" or str(y_type) == "object"):
-        fig = px.bar(df, x=x_axis, y=y_axis)
-        chart_type = "Bar Chart (Best for category comparison)"
-
-    elif not y_axis and str(x_type) != "object":
-        fig = px.histogram(df, x=x_axis)
-        chart_type = "Histogram (Best for distribution)"
-
-    elif "date" in x_axis.lower():
-        fig = px.line(df, x=x_axis, y=y_axis)
-        chart_type = "Line Chart (Best for time trends)"
-
-    else:
-        fig = px.line(df, x=x_axis)
-        chart_type = "Line Chart"
-
-    st.info(f"🤖 Recommended: {chart_type}")
-
-    if fig:
-        st.plotly_chart(fig, use_container_width=True)
+        # Prediction chart
+        fig_pred = px.scatter(x=y_test, y=preds,
+                              labels={'x': 'Actual', 'y': 'Predicted'},
+                              title="Prediction vs Actual")
+        st.plotly_chart(fig_pred, use_container_width=True)
 
     # ---------------- INSIGHTS ----------------
     st.subheader("🧠 Insights")
 
-    if y_axis:
+    if not numeric.empty:
         st.write(f"""
-        - Relationship between **{x_axis}** and **{y_axis}**
-        - Helps identify trends, patterns, and correlations
-        - Useful for predictions and decision making
-        """)
-    else:
-        st.write(f"""
-        - Distribution of **{x_axis}**
-        - Helps identify spread and outliers
+        - Dataset contains **{df_clean.shape[0]} cleaned rows**
+        - Strong relationships visible in correlation heatmap
+        - KPI values indicate overall trends in key variables
+        - Regression model shows prediction capability with accuracy score
         """)
 
     # ---------------- AI EXPLAIN ----------------
-    if st.button("🤖 Explain this chart"):
-        if y_axis:
-            st.success(f"""
-            This chart shows how {x_axis} affects {y_axis}.
-            Patterns in this chart can help in forecasting and analysis.
-            """)
-        else:
-            st.success(f"""
-            This chart shows how values of {x_axis} are distributed.
-            Useful for understanding variability and trends.
-            """)
-
-    # ---------------- MAP SUPPORT ----------------
-    if "latitude" in df.columns and "longitude" in df.columns:
-        st.subheader("🌍 Map Visualization")
-        st.map(df[["latitude", "longitude"]])
-
-    # ---------------- SAVE HISTORY ----------------
-    save_history(uploaded.name)
+    if st.button("🤖 Explain Analysis"):
+        st.success("""
+        This dashboard cleans your dataset, removes missing values, and extracts key metrics.
+        It visualizes relationships, distributions, and trends using multiple charts.
+        Regression helps predict future outcomes based on existing data patterns.
+        """)
+        
