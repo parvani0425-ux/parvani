@@ -69,7 +69,7 @@ if df is not None:
     st.subheader("✅ Cleaned Data")
     st.dataframe(df.head())
 
-    # SIMPLIFY
+    # SIMPLIFY LARGE DATA
     if len(df) > 500:
         for col in df.select_dtypes(include="object").columns:
             top_vals = df[col].value_counts().nlargest(7).index
@@ -106,21 +106,20 @@ if df is not None:
         st.markdown(f"### 🔹 Scatter Plot ({x} vs {y})")
 
         fig1 = px.scatter(
-            df,
-            x=x,
-            y=y,
+            df, x=x, y=y,
             text=df[y].round(2),
             labels={x: x, y: y}
         )
         fig1.update_traces(textposition="top center")
-
         st.plotly_chart(fig1, key="scatter")
 
         st.markdown("#### 📌 Explanation")
         st.write(f"""
-        - X-axis → {x}  
-        - Y-axis → {y}  
-        - Shows relationship between variables  
+        X-axis → {x}  
+        Y-axis → {y}  
+
+        Shows relationship between variables.  
+        Helps in prediction & correlation analysis.
         """)
 
         # LINE
@@ -130,7 +129,12 @@ if df is not None:
         st.plotly_chart(fig2, key="line")
 
         st.markdown("#### 📌 Explanation")
-        st.write(f"Trend of {y} over index/time")
+        st.write(f"""
+        X-axis → Index/Time  
+        Y-axis → {y}  
+
+        Shows trend → growth or decline patterns.
+        """)
 
         # BAR
         cat_cols = df.select_dtypes(include="object").columns
@@ -147,13 +151,17 @@ if df is not None:
                 text=top.values,
                 labels={"x": cat, "y": "Count"}
             )
-
             fig5.update_traces(textposition="outside")
 
             st.plotly_chart(fig5, key="bar")
 
             st.markdown("#### 📌 Explanation")
-            st.write(f"Top categories in {cat}")
+            st.write(f"""
+            X-axis → {cat}  
+            Y-axis → Count  
+
+            Shows top categories → helps segmentation.
+            """)
 
         # HISTOGRAM
         st.markdown(f"### 🔹 Distribution ({x})")
@@ -162,9 +170,14 @@ if df is not None:
         st.plotly_chart(fig3, key="hist")
 
         st.markdown("#### 📌 Explanation")
-        st.write("Shows spread of values")
+        st.write(f"""
+        X-axis → {x}  
+        Y-axis → Frequency  
 
-        # REGRESSION
+        Shows distribution & spread of values.
+        """)
+
+        # ---------------- REGRESSION ----------------
         st.subheader("📈 Regression Analysis")
 
         X = df[[x]]
@@ -182,10 +195,15 @@ if df is not None:
 
         fig_reg = px.scatter(df, x=x, y=y)
         fig_reg.add_traces(px.line(x=X_test[x], y=preds).data)
-
         st.plotly_chart(fig_reg, key="reg")
 
-        # INSIGHTS
+        st.markdown("#### 📌 Explanation")
+        st.write(f"""
+        Regression predicts {y} based on {x}.  
+        R² score shows model accuracy.
+        """)
+
+        # ---------------- INSIGHTS ----------------
         st.subheader("🧠 Insights")
 
         corr = df[x].corr(df[y])
@@ -198,7 +216,7 @@ if df is not None:
         else:
             st.write("Weak relationship")
 
-        # ASK
+        # ---------------- ASK ----------------
         st.subheader("💬 Ask Your Data")
 
         option = st.selectbox(
@@ -223,84 +241,49 @@ if df is not None:
             elif option == "Variance":
                 st.write(df.var(numeric_only=True))
 
-      # ---------------- STORYTELLING DASHBOARD ----------------
-st.subheader("📖 Storytelling Dashboard")
+        # ---------------- STORYTELLING DASHBOARD ----------------
+        st.subheader("📖 Storytelling Dashboard")
 
-st.markdown("### 🧠 Data Story Overview")
+        st.markdown("### 🧠 Data Story Overview")
 
-st.write(f"""
-This dataset contains **{df.shape[0]} rows** and **{df.shape[1]} columns**.  
-The key relationship explored is between **{x} and {y}**.
-""")
+        st.write(f"""
+        This dataset contains **{df.shape[0]} rows** and **{df.shape[1]} columns**.  
+        Relationship analyzed between **{x} and {y}**.
+        """)
 
-# ---------------- STORY CHARTS ----------------
-col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2)
 
-# Scatter Story
-with col1:
-    st.markdown("#### 📊 Relationship Insight")
+        with col1:
+            fig_story1 = px.scatter(df, x=x, y=y, text=df[y].round(2))
+            fig_story1.update_traces(textposition="top center")
+            st.plotly_chart(fig_story1, key="story_scatter")
 
-    fig_story1 = px.scatter(df, x=x, y=y)
-    st.plotly_chart(fig_story1, key="story_scatter")
+            st.write(f"{x} vs {y} relationship → pattern shows correlation")
 
-    st.write(f"""
-    This chart shows how **{x} impacts {y}**.  
-    If points follow a pattern → strong relationship exists.
-    """)
+        with col2:
+            fig_story2 = px.line(df, y=y, markers=True)
+            st.plotly_chart(fig_story2, key="story_line")
 
-# Trend Story
-with col2:
-    st.markdown("#### 📈 Trend Insight")
+            st.write(f"{y} trend shows growth/decline behavior")
 
-    fig_story2 = px.line(df, y=y)
-    st.plotly_chart(fig_story2, key="story_line")
+        fig_story3 = px.histogram(df, x=x, text_auto=True)
+        st.plotly_chart(fig_story3, key="story_hist")
 
-    st.write(f"""
-    This shows how **{y} changes across the dataset**.  
-    Helps identify growth or decline patterns.
-    """)
+        st.write(f"{x} distribution shows spread of values")
 
-# ---------------- DISTRIBUTION ----------------
-st.markdown("#### 📉 Distribution Insight")
+        if len(cat_cols) > 0:
+            fig_story4 = px.bar(x=top.index, y=top.values, text=top.values)
+            fig_story4.update_traces(textposition="outside")
+            st.plotly_chart(fig_story4, key="story_bar")
 
-fig_story3 = px.histogram(df, x=x)
-st.plotly_chart(fig_story3, key="story_hist")
+            st.write(f"Top categories in {cat}")
 
-st.write(f"""
-This explains how values of **{x} are distributed**.  
-Helps detect concentration and spread.
-""")
+        st.markdown("### 🔍 Final Insight")
 
-# ---------------- CATEGORY ----------------
-cat_cols = df.select_dtypes(include="object").columns
-
-if len(cat_cols) > 0:
-    cat = cat_cols[0]
-    top = df[cat].value_counts().nlargest(7)
-
-    st.markdown("#### 🏷️ Category Insight")
-
-    fig_story4 = px.bar(x=top.index, y=top.values)
-    st.plotly_chart(fig_story4, key="story_bar")
-
-    st.write(f"""
-    Shows most frequent categories in **{cat}**.  
-    Useful for identifying dominant segments.
-    """)
-
-# ---------------- FINAL INTERPRETATION ----------------
-st.markdown("### 🔍 Final Interpretation")
-
-if corr > 0.7:
-    st.success(f"Strong positive relationship between {x} and {y}")
-elif corr < -0.7:
-    st.warning(f"Strong negative relationship between {x} and {y}")
-else:
-    st.info(f"Weak/moderate relationship between {x} and {y}")
-
-st.write("""
-📌 Overall, this data can be used for:
-- Prediction  
-- Trend analysis  
-- Decision-making  
-""")
+        if corr > 0.7:
+            st.success(f"Strong positive relationship between {x} and {y}")
+        elif corr < -0.7:
+            st.warning(f"Strong negative relationship")
+        else:
+            st.info("Moderate/weak relationship")
+            
