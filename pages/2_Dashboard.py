@@ -12,6 +12,13 @@ if not st.session_state.get("logged_in", False):
     st.warning("Please login first")
     st.stop()
 
+st.sidebar.title("🚀 AI Platform")
+
+st.sidebar.page_link("app.py", label="Home")
+st.sidebar.page_link("pages/2_Dashboard.py", label="Dashboard")
+st.sidebar.page_link("pages/3_profile.py", label="Profile")
+st.sidebar.page_link("pages/4_About.py", label="About")
+
 # ---------------- MAIN ----------------
 st.title("📊 AI Data Dashboard")
 
