@@ -12,6 +12,9 @@ if not st.session_state.get("logged_in", False):
     st.warning("Please login first")
     st.stop()
 
+if st.sidebar.button("Logout"):
+    st.session_state.logged_in = False
+    st.switch_page("app.py")
 
 # ---------------- MAIN ----------------
 st.title("📊 AI Data Dashboard")
