@@ -1,14 +1,5 @@
 import streamlit as st
 
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-import numpy as np
-import zipfile
-
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
 
 # ---------------- LOGIN CHECK ----------------
 if not st.session_state.get("logged_in", False):
