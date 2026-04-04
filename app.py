@@ -1,29 +1,53 @@
 import streamlit as st
 
-# 🔥 PAGE CONFIG (FORCE SIDEBAR OPEN)
+# 🚀 PAGE CONFIG
 st.set_page_config(
     page_title="AI Data Platform",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# 👉 TEST SIDEBAR (REMOVE LATER IF YOU WANT)
-st.sidebar.write("✅ Sidebar is working")
+# ✅ SIDEBAR (FORCE SHOW)
+st.sidebar.title("🚀 AI Platform")
+st.sidebar.write("Navigate using pages below 👇")
 
-# 🌌 CUSTOM DARK + GRADIENT STYLE
+# 🎨 FULL PREMIUM UI STYLE
 st.markdown("""
 <style>
-body {
-    background-color: #0e1117;
+
+/* ===== BACKGROUND ANIMATION ===== */
+.stApp {
+    background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #1a1a2e);
+    background-size: 400% 400%;
+    animation: gradientBG 12s ease infinite;
 }
 
-.main {
-    background: linear-gradient(135deg, #0e1117, #1a1f2e);
+@keyframes gradientBG {
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
 }
 
-/* Title Styling */
+/* ===== GLASSMORPHISM CARDS ===== */
+.glass {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 25px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    transition: 0.3s;
+}
+
+.glass:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+
+/* ===== TITLE ===== */
 .title {
-    font-size: 60px;
+    font-size: 65px;
     font-weight: bold;
     text-align: center;
     background: linear-gradient(90deg, #6a5cff, #00d4ff);
@@ -31,83 +55,100 @@ body {
     -webkit-text-fill-color: transparent;
 }
 
-/* Subtitle */
+/* ===== SUBTITLE ===== */
 .subtitle {
     text-align: center;
-    font-size: 18px;
-    color: #9aa4b2;
-    margin-bottom: 30px;
+    font-size: 20px;
+    color: #c9d1d9;
+    margin-bottom: 40px;
 }
 
-/* Feature Cards */
-.card {
-    background: #161b22;
-    padding: 20px;
-    border-radius: 15px;
-    text-align: center;
-    transition: 0.3s;
-    box-shadow: 0px 4px 20px rgba(0,0,0,0.3);
+/* ===== BUTTON STYLE ===== */
+.stButton>button {
+    background: linear-gradient(90deg, #6a5cff, #00d4ff);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-weight: bold;
+    padding: 10px 20px;
 }
 
-.card:hover {
-    transform: scale(1.05);
-    box-shadow: 0px 8px 30px rgba(0,0,0,0.5);
-}
 </style>
 """, unsafe_allow_html=True)
 
 # 🚀 HERO SECTION
 st.markdown('<div class="title">🚀 AI Data Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Turn raw data into insights & predictions</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Turn raw data into insights, visuals & predictions</div>', unsafe_allow_html=True)
 
 st.write("")
-
-# 📢 INFO BOX
-st.info("👉 Open Dashboard, Login or About from the sidebar")
-
 st.write("")
 
-# ✨ FEATURES SECTION
+# 👉 CTA
+st.info("👉 Use the sidebar to access Login, Dashboard & About pages")
+
+st.write("")
+st.write("")
+
+# 📊 FEATURES SECTION
 st.markdown("## ✨ Features")
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown('<div class="card">📊<br><b>Data Cleaning</b><br>Remove nulls, duplicates & errors</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="glass">
+    📊 <h4>Data Cleaning</h4>
+    Remove missing values, duplicates, and messy data automatically.
+    </div>
+    """, unsafe_allow_html=True)
 
 with col2:
-    st.markdown('<div class="card">🤖<br><b>AI Predictions</b><br>Regression & accuracy insights</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="glass">
+    🤖 <h4>AI Predictions</h4>
+    Run regression models and get accuracy instantly.
+    </div>
+    """, unsafe_allow_html=True)
 
 with col3:
-    st.markdown('<div class="card">📈<br><b>Interactive Charts</b><br>Beautiful Plotly visualizations</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="glass">
+    📈 <h4>Interactive Charts</h4>
+    Beautiful animated visualizations using Plotly.
+    </div>
+    """, unsafe_allow_html=True)
 
 st.write("")
 st.write("")
 
-# 🌟 EXTRA SECTION (MAKE IT LOOK PREMIUM)
-st.markdown("## 🌟 Why this tool?")
+# 🌟 WHY SECTION
+st.markdown("## 🌟 Why this platform?")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    st.write("""
-    ✔ Clean messy datasets automatically  
-    ✔ Generate KPIs instantly  
-    ✔ Run ML models without coding  
-    ✔ Understand data visually  
-    """)
+    st.markdown("""
+    <div class="glass">
+    ✔ Clean data instantly  
+    ✔ Generate KPIs automatically  
+    ✔ Beginner-friendly interface  
+    ✔ No coding required  
+    </div>
+    """, unsafe_allow_html=True)
 
 with col2:
-    st.write("""
-    ✔ Beginner friendly  
-    ✔ Fast & interactive  
+    st.markdown("""
+    <div class="glass">
+    ✔ ML predictions built-in  
     ✔ Works with any CSV  
-    ✔ Built with AI + Streamlit  
-    """)
+    ✔ Fast & interactive  
+    ✔ Modern UI dashboard  
+    </div>
+    """, unsafe_allow_html=True)
 
 st.write("")
 st.write("")
 
 # 🎯 FOOTER
 st.markdown("---")
-st.caption("Built with ❤️ using Streamlit | AI Data Platform")
+st.caption("✨ Built with Streamlit | AI Data Platform by You 🚀")
