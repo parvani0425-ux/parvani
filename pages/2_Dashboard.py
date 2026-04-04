@@ -1,205 +1,195 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.figure_factory as ff
+import numpy as np
+
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 
+# ---------------- LOGIN CHECK ----------------
 if not st.session_state.get("logged_in", False):
     st.warning("Please login first")
     st.stop()
 
+# ---------------- SIDEBAR ----------------
 st.sidebar.title("🚀 AI Platform")
-
 st.sidebar.page_link("app.py", label="Home")
 st.sidebar.page_link("pages/2_Dashboard.py", label="Dashboard")
-st.sidebar.page_link("pages/3_Profile.py", label="Profile")
+st.sidebar.page_link("pages/3_profile.py", label="Profile")
 st.sidebar.page_link("pages/4_About.py", label="About")
 
 if st.sidebar.button("Logout"):
     st.session_state.logged_in = False
     st.switch_page("app.py")
 
-st.set_page_config(page_title="Dashboard", layout="wide")
+# ---------------- MAIN ----------------
+st.title("📊 AI Data Dashboard")
 
-st.title("📊 AI Data Analytics Dashboard")
+file = st.file_uploader("Upload your dataset (CSV)", type=["csv"])
 
-uploaded = st.file_uploader("Upload CSV file")
+if file:
 
-if uploaded:
-    df = pd.read_csv(uploaded)
+    df = pd.read_csv(file)
 
-    # ---------------- RAW DATA ----------------
-    st.subheader("📄 Raw Data")
+    st.subheader("📂 Raw Data")
     st.dataframe(df.head())
 
     # ---------------- CLEANING ----------------
     st.subheader("🧹 Data Cleaning")
 
     before = df.shape[0]
-    nulls = df.isnull().sum().sum()
-    duplicates = df.duplicated().sum()
+    df = df.drop_duplicates()
+    after_dup = df.shape[0]
 
-    df_clean = df.drop_duplicates().dropna()
+    df = df.dropna()
+    after_na = df.shape[0]
 
-    after = df_clean.shape[0]
+    st.success(f"✔ Removed {before - after_dup} duplicate rows")
+    st.success(f"✔ Removed {after_dup - after_na} missing rows")
 
-    st.success(f"""
-    ✔ Removed rows: {before - after}  
-    ✔ Null values found: {nulls}  
-    ✔ Duplicates removed: {duplicates}
-    """)
-
-    st.subheader("🧼 Cleaned Data")
-    st.dataframe(df_clean.head())
-
-    numeric = df_clean.select_dtypes(include='number')
+    st.subheader("✅ Cleaned Data")
+    st.dataframe(df.head())
 
     # ---------------- KPI CARDS ----------------
-    st.subheader("📊 Key Metrics")
+    st.subheader("📌 KPI Dashboard")
 
-    if not numeric.empty:
-        cols = st.columns(5)
+    num_cols = df.select_dtypes(include=np.number).columns
 
-        for i, col in enumerate(numeric.columns[:5]):
-            cols[i].metric(
-                label=f"{col}",
-                value=round(numeric[col].mean(), 2),
-                delta=f"Max: {round(numeric[col].max(),2)}"
-            )
+    col1, col2, col3, col4 = st.columns(4)
 
-# ---------------- VISUAL + EXPLANATION ----------------
-st.subheader("📊 Smart Visual Analysis")
+    col1.metric("Rows", df.shape[0])
+    col2.metric("Columns", df.shape[1])
 
-if len(numeric.columns) >= 2:
+    if len(num_cols) > 0:
+        col3.metric("Average", round(df[num_cols[0]].mean(), 2))
+        col4.metric("Max", df[num_cols[0]].max())
 
-    x_col = numeric.columns[0]
-    y_col = numeric.columns[1]
+    # ---------------- CHARTS ----------------
+    st.subheader("📊 Visual Analysis")
 
-    col1, col2 = st.columns(2)
+    if len(num_cols) >= 2:
 
-    # ---------------- SCATTER ----------------
-    with col1:
-        fig1 = px.scatter(df_clean, x=x_col, y=y_col,
-                         title=f"{x_col} vs {y_col}")
-        st.plotly_chart(fig1, use_container_width=True)
+        x = num_cols[0]
+        y = num_cols[1]
 
-        st.info(f"""
-        📌 WHAT: Shows relationship between {x_col} and {y_col}  
-        ❓ WHY: To identify correlation and patterns  
-        ⚙ HOW: Each dot represents one data point  
-        """)
+        # SCATTER
+        st.markdown("### 🔹 Scatter Plot")
+        st.write(f"**Why this chart?** To understand relationship between {x} and {y}")
+        fig1 = px.scatter(df, x=x, y=y, title=f"{x} vs {y}")
+        st.plotly_chart(fig1)
 
-    # ---------------- LINE ----------------
-    with col2:
-        fig2 = px.line(df_clean, y=x_col, title=f"{x_col} Trend Over Time")
-        st.plotly_chart(fig2, use_container_width=True)
+        st.write("👉 Shows correlation pattern (positive/negative/no relation)")
 
-        st.info(f"""
-        📌 WHAT: Trend of {x_col} over dataset index  
-        ❓ WHY: To observe growth or decline  
-        ⚙ HOW: Connected points show progression  
-        """)
+        # LINE
+        st.markdown("### 🔹 Trend Line")
+        st.write("**Why?** To observe trends over index/time")
+        fig2 = px.line(df, y=y, title=f"{y} Trend")
+        st.plotly_chart(fig2)
 
-    col3, col4 = st.columns(2)
+        # HISTOGRAM
+        st.markdown("### 🔹 Distribution")
+        st.write(f"**Why?** To understand how {x} values are spread")
+        fig3 = px.histogram(df, x=x, title=f"{x} Distribution")
+        st.plotly_chart(fig3)
 
-    # ---------------- HISTOGRAM ----------------
-    with col3:
-        fig3 = px.histogram(df_clean, x=x_col, title=f"{x_col} Distribution")
-        st.plotly_chart(fig3, use_container_width=True)
+        # BOX
+        st.markdown("### 🔹 Outliers")
+        st.write(f"**Why?** To detect unusual values in {y}")
+        fig4 = px.box(df, y=y, title=f"{y} Outliers")
+        st.plotly_chart(fig4)
 
-        st.info(f"""
-        📌 WHAT: Frequency distribution of {x_col}  
-        ❓ WHY: Understand spread and skewness  
-        ⚙ HOW: Bars show count of values  
-        """)
+        # BAR (categorical if exists)
+        cat_cols = df.select_dtypes(include='object').columns
+        if len(cat_cols) > 0:
+            st.markdown("### 🔹 Category Analysis")
+            fig5 = px.bar(df, x=cat_cols[0], title="Category Count")
+            st.plotly_chart(fig5)
 
-    # ---------------- BOX ----------------
-    with col4:
-        fig4 = px.box(df_clean, y=x_col, title=f"{x_col} Outliers")
-        st.plotly_chart(fig4, use_container_width=True)
+        # ---------------- REGRESSION ----------------
+        st.subheader("📈 Regression Model")
 
-        st.info(f"""
-        📌 WHAT: Detects outliers in {x_col}  
-        ❓ WHY: Identify abnormal values  
-        ⚙ HOW: Box shows quartiles & whiskers  
-        """)
+        X = df[[x]]
+        Y = df[y]
 
-    # ---------------- HEATMAP ----------------
-    st.subheader("🔥 Correlation Insight")
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
 
-    corr = numeric.corr()
-    fig5 = px.imshow(corr, text_auto=True)
-    st.plotly_chart(fig5, use_container_width=True)
+        model = LinearRegression()
+        model.fit(X_train, Y_train)
 
-    st.info("""
-    📌 WHAT: Correlation between variables  
-    ❓ WHY: Understand relationships strength  
-    ⚙ HOW: Values range from -1 to +1  
-    """)
+        preds = model.predict(X_test)
+        score = r2_score(Y_test, preds)
 
-    # ---------------- ML MODEL ----------------
-st.subheader("🤖 Prediction Model")
+        st.success(f"Model Accuracy (R²): {round(score, 2)}")
 
-if len(numeric.columns) >= 2:
+        fig_reg = px.scatter(df, x=x, y=y, title="Regression Fit")
+        fig_reg.add_traces(px.line(x=X_test[x], y=preds).data)
+        st.plotly_chart(fig_reg)
 
-    target = numeric.columns[-1]
-    features = numeric.columns[:-1]
+        st.write("👉 Regression helps predict future values based on past trends.")
 
-    st.write(f"🎯 Predicting: **{target}**")
+        # ---------------- PREDICTION ----------------
+        st.subheader("🤖 Custom Prediction")
 
-    X = df_clean[features]
-    y = df_clean[target]
+        user_val = st.number_input(f"Enter value for {x}")
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+        if st.button("Predict"):
+            result = model.predict([[user_val]])
+            st.success(f"Predicted {y}: {round(result[0],2)}")
 
-    model = LinearRegression()
-    model.fit(X_train, y_train)
+        # ---------------- ADVANCED PREDICTION ----------------
+        st.subheader("⚙️ Advanced Prediction")
 
-    preds = model.predict(X_test)
-    score = r2_score(y_test, preds)
+        custom_x = st.selectbox("Choose Feature", num_cols)
 
-    st.success(f"📊 Model Accuracy (R² Score): {round(score,3)}")
+        val = st.number_input("Enter Value")
 
-    # Prediction vs Actual
-    fig_pred = px.scatter(x=y_test, y=preds,
-                          labels={"x":"Actual", "y":"Predicted"},
-                          title="Prediction vs Actual")
-    st.plotly_chart(fig_pred, use_container_width=True)
+        if st.button("Run Custom Prediction"):
+            model2 = LinearRegression()
+            model2.fit(df[[custom_x]], df[y])
+            res = model2.predict([[val]])
+            st.success(f"Prediction: {round(res[0],2)}")
 
-    # ---------------- USER INPUT ----------------
-    st.subheader("🔮 Make Your Own Prediction")
+        # ---------------- INSIGHTS ----------------
+        st.subheader("🧠 Insights")
 
-    user_inputs = []
+        if score > 0.7:
+            st.write("Strong relationship between variables → reliable predictions.")
+        elif score > 0.4:
+            st.write("Moderate relationship → decent predictions.")
+        else:
+            st.write("Weak relationship → predictions may not be reliable.")
 
-    cols = st.columns(len(features))
+        st.write("Check scatter + regression line for understanding patterns.")
 
-    for i, col in enumerate(features):
-        val = cols[i].number_input(f"Enter {col}", value=float(X[col].mean()))
-        user_inputs.append(val)
+        # ---------------- FINAL DASHBOARD ----------------
+        st.subheader("📊 Final Summary Dashboard")
 
-    if st.button("Predict"):
-        result = model.predict([user_inputs])[0]
-        st.success(f"🎯 Predicted {target}: {round(result,2)}")
+        c1, c2 = st.columns(2)
 
-   # ---------------- INSIGHTS ----------------
-st.subheader("🧠 Final Insights")
+        with c1:
+            st.plotly_chart(fig1)
+            st.plotly_chart(fig3)
 
-st.write(f"""
-✔ Dataset cleaned and optimized  
-✔ Strong correlations visible in heatmap  
-✔ Distribution shows data spread patterns  
-✔ Outliers detected and handled  
-✔ Regression model predicts **{target}** with accuracy {round(score,3)}  
-✔ You can now input your own values for real-time prediction  
-""")
+        with c2:
+            st.plotly_chart(fig2)
+            st.plotly_chart(fig4)
 
-    # ---------------- AI EXPLAIN ----------------
-    if st.button("🤖 Explain Analysis"):
-        st.success("""
-        This dashboard cleans your dataset, removes missing values, and extracts key metrics.
-        It visualizes relationships, distributions, and trends using multiple charts.
-        Regression helps predict future outcomes based on existing data patterns.
-        """)
-        
+        # ---------------- ASK ANYTHING ----------------
+        st.subheader("💬 Ask Questions About Data")
+
+        question = st.text_input("Ask anything about your data")
+
+        if question:
+            if "average" in question.lower():
+                st.write(df.mean(numeric_only=True))
+            elif "max" in question.lower():
+                st.write(df.max(numeric_only=True))
+            elif "min" in question.lower():
+                st.write(df.min(numeric_only=True))
+            else:
+                st.write("Try asking about average, max, min or trends")
+
+    else:
+        st.warning("Not enough numeric data for analysis.")
+    
