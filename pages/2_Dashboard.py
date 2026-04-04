@@ -114,59 +114,122 @@ if df is not None:
         y = num_cols[1]
 
         # SCATTER
-        st.markdown(f"### 🔹 Scatter Plot ({x} vs {y})")
+       st.markdown(f"### 🔹 Scatter Plot ({x} vs {y})")
 
-        fig1 = px.scatter(df, x=x, y=y, text=y)
-        fig1.update_traces(textposition="top center")
-        st.plotly_chart(fig1, key="scatter")
+fig1 = px.scatter(
+    df,
+    x=x,
+    y=y,
+    text=df[y].round(2),   # label values
+    labels={x: x, y: y}
+)
 
-        st.write(f"X-axis → {x} (input)")
-        st.write(f"Y-axis → {y} (output)")
-        st.info("Shows relationship between variables")
+fig1.update_traces(textposition="top center")
+
+st.plotly_chart(fig1, key="scatter")
+
+# EXPLANATION
+st.markdown("#### 📌 Explanation")
+st.write(f"""
+- **What:** This chart shows the relationship between {x} and {y}.  
+- **Why:** Used to identify correlation (positive/negative/no relation).  
+- **How to read:** Each point = one data record.  
+- **X-axis:** {x} (input/independent variable)  
+- **Y-axis:** {y} (output/dependent variable)  
+
+👉 **Significance:** Helps understand how changes in {x} impact {y}, useful for prediction and decision-making.
+""")
+
 
         # LINE
-        st.markdown(f"### 🔹 Trend Line ({y})")
-        fig2 = px.line(df, y=y)
-        st.plotly_chart(fig2, key="line")
+       st.markdown(f"### 🔹 Trend Line ({y})")
 
-        st.write(f"X-axis → index/time | Y-axis → {y}")
-        st.info("Shows trend over dataset")
+fig2 = px.line(df, y=y, markers=True)
+st.plotly_chart(fig2, key="line")
 
-        # HIST
-        st.markdown(f"### 🔹 Distribution ({x})")
-        fig3 = px.histogram(df, x=x)
-        st.plotly_chart(fig3, key="hist")
+st.markdown("#### 📌 Explanation")
+st.write(f"""
+- **What:** Displays how {y} changes across the dataset.  
+- **Why:** Used to identify trends over time or sequence.  
+- **X-axis:** Index (order/time)  
+- **Y-axis:** {y}  
 
-        st.write(f"X-axis → {x} | Y-axis → frequency")
-        st.info("Shows spread of values")
-
-        # BOX
-        st.markdown(f"### 🔹 Outliers ({y})")
-        fig4 = px.box(df, y=y)
-        st.plotly_chart(fig4, key="box")
-
-        st.write(f"Y-axis → {y}")
-        st.info("Detects extreme values")
+👉 **Significance:** Helps detect growth, decline, or patterns — important for forecasting.
+""")
 
         # BAR
-        cat_cols = df.select_dtypes(include="object").columns
+       cat_cols = df.select_dtypes(include="object").columns
 
-        if len(cat_cols) > 0:
-            cat = cat_cols[0]
-            top = df[cat].value_counts().nlargest(7)
+if len(cat_cols) > 0:
+    cat = cat_cols[0]
+    top = df[cat].value_counts().nlargest(7)
 
-            st.markdown(f"### 🔹 Category Count ({cat})")
+    st.markdown(f"### 🔹 Category Count ({cat})")
 
-            fig5 = px.bar(
-                x=top.index,
-                y=top.values,
-                text=top.values
-            )
-            fig5.update_traces(textposition='outside')
+    fig5 = px.bar(
+        x=top.index,
+        y=top.values,
+        text=top.values,
+        labels={"x": cat, "y": "Count"}
+    )
 
-            st.plotly_chart(fig5, key="bar")
+    fig5.update_traces(textposition="outside")
 
-            st.info("Shows top categories")
+    st.plotly_chart(fig5, key="bar")
+
+    st.markdown("#### 📌 Explanation")
+    st.write(f"""
+- **What:** Shows most frequent categories in {cat}.  
+- **Why:** Helps compare category distribution.  
+- **X-axis:** {cat} categories  
+- **Y-axis:** Count  
+
+👉 **Significance:** Identifies dominant categories and supports segmentation analysis.
+""")
+
+cat_cols = df.select_dtypes(include="object").columns
+
+if len(cat_cols) > 0:
+    cat = cat_cols[0]
+    top = df[cat].value_counts().nlargest(7)
+
+    st.markdown(f"### 🔹 Category Count ({cat})")
+
+    fig5 = px.bar(
+        x=top.index,
+        y=top.values,
+        text=top.values,
+        labels={"x": cat, "y": "Count"}
+    )
+
+    fig5.update_traces(textposition="outside")
+
+    st.plotly_chart(fig5, key="bar")
+
+    st.markdown("#### 📌 Explanation")
+    st.write(f"""
+- **What:** Shows most frequent categories in {cat}.  
+- **Why:** Helps compare category distribution.  
+- **X-axis:** {cat} categories  
+- **Y-axis:** Count  
+
+👉 **Significance:** Identifies dominant categories and supports segmentation analysis.
+""")
+
+st.markdown(f"### 🔹 Distribution ({x})")
+
+fig3 = px.histogram(df, x=x, text_auto=True)
+st.plotly_chart(fig3, key="hist")
+
+st.markdown("#### 📌 Explanation")
+st.write(f"""
+- **What:** Shows frequency distribution of {x}.  
+- **Why:** Helps understand spread of values.  
+- **X-axis:** {x} values  
+- **Y-axis:** Frequency (count)  
+
+👉 **Significance:** Useful for identifying skewness, concentration, and data patterns.
+""")
 
         # ---------------- REGRESSION ----------------
         st.subheader("📈 Regression Analysis")
