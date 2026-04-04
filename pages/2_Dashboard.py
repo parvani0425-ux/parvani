@@ -12,21 +12,10 @@ if not st.session_state.get("logged_in", False):
     st.warning("Please login first")
     st.stop()
 
-# ---------------- SIDEBAR ----------------
-st.sidebar.title("🚀 AI Platform")
-st.sidebar.page_link("app.py", label="Home")
-st.sidebar.page_link("pages/2_Dashboard.py", label="Dashboard")
-st.sidebar.page_link("pages/3_profile.py", label="Profile")
-st.sidebar.page_link("pages/4_About.py", label="About")
-
-if st.sidebar.button("Logout"):
-    st.session_state.logged_in = False
-    st.switch_page("app.py")
-
 # ---------------- MAIN ----------------
 st.title("📊 AI Data Dashboard")
 
-file = st.file_uploader("Upload your dataset (CSV)", type=["csv"])
+file = st.file_uploader("Upload CSV File", type=["csv"])
 
 if file:
 
@@ -56,14 +45,14 @@ if file:
 
     num_cols = df.select_dtypes(include=np.number).columns
 
-    col1, col2, col3, col4 = st.columns(4)
+    c1, c2, c3, c4 = st.columns(4)
 
-    col1.metric("Rows", df.shape[0])
-    col2.metric("Columns", df.shape[1])
+    c1.metric("Rows", df.shape[0])
+    c2.metric("Columns", df.shape[1])
 
     if len(num_cols) > 0:
-        col3.metric("Average", round(df[num_cols[0]].mean(), 2))
-        col4.metric("Max", df[num_cols[0]].max())
+        c3.metric("Average", round(df[num_cols[0]].mean(), 2))
+        c4.metric("Max", df[num_cols[0]].max())
 
     # ---------------- CHARTS ----------------
     st.subheader("📊 Visual Analysis")
@@ -75,39 +64,38 @@ if file:
 
         # SCATTER
         st.markdown("### 🔹 Scatter Plot")
-        st.write(f"**Why this chart?** To understand relationship between {x} and {y}")
+        st.write(f"Why: Shows relationship between {x} and {y}")
         fig1 = px.scatter(df, x=x, y=y, title=f"{x} vs {y}")
-        st.plotly_chart(fig1)
-
-        st.write("👉 Shows correlation pattern (positive/negative/no relation)")
+        st.plotly_chart(fig1, key="scatter_main")
 
         # LINE
         st.markdown("### 🔹 Trend Line")
-        st.write("**Why?** To observe trends over index/time")
+        st.write("Why: Shows trend over time/index")
         fig2 = px.line(df, y=y, title=f"{y} Trend")
-        st.plotly_chart(fig2)
+        st.plotly_chart(fig2, key="line_main")
 
         # HISTOGRAM
         st.markdown("### 🔹 Distribution")
-        st.write(f"**Why?** To understand how {x} values are spread")
+        st.write(f"Why: Shows distribution of {x}")
         fig3 = px.histogram(df, x=x, title=f"{x} Distribution")
-        st.plotly_chart(fig3)
+        st.plotly_chart(fig3, key="hist_main")
 
         # BOX
-        st.markdown("### 🔹 Outliers")
-        st.write(f"**Why?** To detect unusual values in {y}")
+        st.markdown("### 🔹 Outliers Detection")
+        st.write(f"Why: Detects unusual values in {y}")
         fig4 = px.box(df, y=y, title=f"{y} Outliers")
-        st.plotly_chart(fig4)
+        st.plotly_chart(fig4, key="box_main")
 
-        # BAR (categorical if exists)
-        cat_cols = df.select_dtypes(include='object').columns
+        # BAR
+        cat_cols = df.select_dtypes(include="object").columns
         if len(cat_cols) > 0:
-            st.markdown("### 🔹 Category Analysis")
+            st.markdown("### 🔹 Category Chart")
+            st.write("Why: Shows category counts")
             fig5 = px.bar(df, x=cat_cols[0], title="Category Count")
-            st.plotly_chart(fig5)
+            st.plotly_chart(fig5, key="bar_main")
 
         # ---------------- REGRESSION ----------------
-        st.subheader("📈 Regression Model")
+        st.subheader("📈 Regression Analysis")
 
         X = df[[x]]
         Y = df[y]
@@ -120,31 +108,30 @@ if file:
         preds = model.predict(X_test)
         score = r2_score(Y_test, preds)
 
-        st.success(f"Model Accuracy (R²): {round(score, 2)}")
+        st.success(f"Model Accuracy (R² Score): {round(score, 2)}")
 
         fig_reg = px.scatter(df, x=x, y=y, title="Regression Fit")
         fig_reg.add_traces(px.line(x=X_test[x], y=preds).data)
-        st.plotly_chart(fig_reg)
+        st.plotly_chart(fig_reg, key="reg_main")
 
-        st.write("👉 Regression helps predict future values based on past trends.")
+        st.write("Why: Regression predicts future values based on trend")
 
         # ---------------- PREDICTION ----------------
         st.subheader("🤖 Custom Prediction")
 
-        user_val = st.number_input(f"Enter value for {x}")
+        user_val = st.number_input(f"Enter value for {x}", key="basic_input")
 
-        if st.button("Predict"):
+        if st.button("Predict", key="basic_predict"):
             result = model.predict([[user_val]])
             st.success(f"Predicted {y}: {round(result[0],2)}")
 
-        # ---------------- ADVANCED PREDICTION ----------------
+        # ADVANCED
         st.subheader("⚙️ Advanced Prediction")
 
-        custom_x = st.selectbox("Choose Feature", num_cols)
+        custom_x = st.selectbox("Choose Feature", num_cols, key="feature_select")
+        val = st.number_input("Enter Value", key="adv_input")
 
-        val = st.number_input("Enter Value")
-
-        if st.button("Run Custom Prediction"):
+        if st.button("Run Custom Prediction", key="adv_predict"):
             model2 = LinearRegression()
             model2.fit(df[[custom_x]], df[y])
             res = model2.predict([[val]])
@@ -154,31 +141,29 @@ if file:
         st.subheader("🧠 Insights")
 
         if score > 0.7:
-            st.write("Strong relationship between variables → reliable predictions.")
+            st.write("Strong relationship → high prediction reliability")
         elif score > 0.4:
-            st.write("Moderate relationship → decent predictions.")
+            st.write("Moderate relationship → usable predictions")
         else:
-            st.write("Weak relationship → predictions may not be reliable.")
-
-        st.write("Check scatter + regression line for understanding patterns.")
+            st.write("Weak relationship → low reliability")
 
         # ---------------- FINAL DASHBOARD ----------------
-        st.subheader("📊 Final Summary Dashboard")
+        st.subheader("📊 Final Dashboard")
 
-        c1, c2 = st.columns(2)
+        colA, colB = st.columns(2)
 
-        with c1:
-            st.plotly_chart(fig1)
-            st.plotly_chart(fig3)
+        with colA:
+            st.plotly_chart(fig1, key="final_scatter")
+            st.plotly_chart(fig3, key="final_hist")
 
-        with c2:
-            st.plotly_chart(fig2)
-            st.plotly_chart(fig4)
+        with colB:
+            st.plotly_chart(fig2, key="final_line")
+            st.plotly_chart(fig4, key="final_box")
 
         # ---------------- ASK ANYTHING ----------------
-        st.subheader("💬 Ask Questions About Data")
+        st.subheader("💬 Ask Your Data")
 
-        question = st.text_input("Ask anything about your data")
+        question = st.text_input("Ask something about your dataset")
 
         if question:
             if "average" in question.lower():
@@ -188,8 +173,8 @@ if file:
             elif "min" in question.lower():
                 st.write(df.min(numeric_only=True))
             else:
-                st.write("Try asking about average, max, min or trends")
+                st.write("Try: average, max, min")
 
     else:
-        st.warning("Not enough numeric data for analysis.")
-    
+        st.warning("Not enough numeric columns")
+        
