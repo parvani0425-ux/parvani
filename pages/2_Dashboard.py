@@ -223,19 +223,84 @@ if df is not None:
             elif option == "Variance":
                 st.write(df.var(numeric_only=True))
 
-        # STORY
-        st.subheader("📖 Storytelling Dashboard")
+      # ---------------- STORYTELLING DASHBOARD ----------------
+st.subheader("📖 Storytelling Dashboard")
 
-        st.write(f"- Dataset has {df.shape[0]} rows and {df.shape[1]} columns")
-        st.write(f"- {x} influences {y}")
+st.markdown("### 🧠 Data Story Overview")
 
-        if corr > 0.7:
-            st.write("Strong positive trend")
-        elif corr < -0.7:
-            st.write("Negative trend")
-        else:
-            st.write("Weak relationship")
+st.write(f"""
+This dataset contains **{df.shape[0]} rows** and **{df.shape[1]} columns**.  
+The key relationship explored is between **{x} and {y}**.
+""")
 
-    else:
-        st.warning("Not enough numeric columns")
-        
+# ---------------- STORY CHARTS ----------------
+col1, col2 = st.columns(2)
+
+# Scatter Story
+with col1:
+    st.markdown("#### 📊 Relationship Insight")
+
+    fig_story1 = px.scatter(df, x=x, y=y)
+    st.plotly_chart(fig_story1, key="story_scatter")
+
+    st.write(f"""
+    This chart shows how **{x} impacts {y}**.  
+    If points follow a pattern → strong relationship exists.
+    """)
+
+# Trend Story
+with col2:
+    st.markdown("#### 📈 Trend Insight")
+
+    fig_story2 = px.line(df, y=y)
+    st.plotly_chart(fig_story2, key="story_line")
+
+    st.write(f"""
+    This shows how **{y} changes across the dataset**.  
+    Helps identify growth or decline patterns.
+    """)
+
+# ---------------- DISTRIBUTION ----------------
+st.markdown("#### 📉 Distribution Insight")
+
+fig_story3 = px.histogram(df, x=x)
+st.plotly_chart(fig_story3, key="story_hist")
+
+st.write(f"""
+This explains how values of **{x} are distributed**.  
+Helps detect concentration and spread.
+""")
+
+# ---------------- CATEGORY ----------------
+cat_cols = df.select_dtypes(include="object").columns
+
+if len(cat_cols) > 0:
+    cat = cat_cols[0]
+    top = df[cat].value_counts().nlargest(7)
+
+    st.markdown("#### 🏷️ Category Insight")
+
+    fig_story4 = px.bar(x=top.index, y=top.values)
+    st.plotly_chart(fig_story4, key="story_bar")
+
+    st.write(f"""
+    Shows most frequent categories in **{cat}**.  
+    Useful for identifying dominant segments.
+    """)
+
+# ---------------- FINAL INTERPRETATION ----------------
+st.markdown("### 🔍 Final Interpretation")
+
+if corr > 0.7:
+    st.success(f"Strong positive relationship between {x} and {y}")
+elif corr < -0.7:
+    st.warning(f"Strong negative relationship between {x} and {y}")
+else:
+    st.info(f"Weak/moderate relationship between {x} and {y}")
+
+st.write("""
+📌 Overall, this data can be used for:
+- Prediction  
+- Trend analysis  
+- Decision-making  
+""")
