@@ -49,7 +49,7 @@ if st.session_state["page"] == "login":
             if username in users and users[username] == password:
                 st.session_state["logged_in"] = True
                 st.session_state["page"] = "dashboard"
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Invalid credentials")
 
@@ -66,7 +66,7 @@ section = st.sidebar.radio("Go to", ["Upload & Clean", "ML & KPIs", "Visualizati
 if st.sidebar.button("Logout"):
     st.session_state["logged_in"] = False
     st.session_state["page"] = "login"
-    st.experimental_rerun()
+    st.rerun()
 
 # ---------------- UPLOAD & CLEAN ----------------
 if section == "Upload & Clean":
@@ -78,7 +78,6 @@ if section == "Upload & Clean":
             df = pd.read_csv(uploaded_file)
             df_clean = clean_data(df)
 
-            # Save in session
             st.session_state["df"] = df
             st.session_state["df_clean"] = df_clean
 
@@ -108,8 +107,23 @@ if section == "ML & KPIs":
 
         col1.metric("Rows", df_clean.shape[0])
         col2.metric("Columns", df_clean.shape[1])
-        col3.metric("Accuracy", f"{round(accuracy,2)}" if accuracy else "N/A")
+        col3.metric("Accuracy", f"{round(accuracy,2) if accuracy else 'N/A'}")
 
+        # 🔥 KPI EXPLANATION
+        st.subheader("📖 KPI Explanation")
+
+        st.write(f"""
+🔹 **Rows ({df_clean.shape[0]})**  
+Represents total number of observations after cleaning. More rows = better reliability.
+
+🔹 **Columns ({df_clean.shape[1]})**  
+Represents number of features used for analysis.
+
+🔹 **Model Accuracy ({round(accuracy,2) if accuracy else "N/A"})**  
+Indicates how well the model predicts. Closer to 1 = better.
+""")
+
+        # Predictions
         if predictions is not None:
             st.subheader("🤖 Prediction Table")
 
@@ -146,20 +160,51 @@ if section == "Visualization":
 
             st.pyplot(fig)
 
-        # Insights button
+            # 🔥 CHART EXPLANATION
+            st.write(f"""
+📊 **Chart Explanation: {col}**
+
+- **X-axis:** Data index (each observation)  
+- **Y-axis:** Values of '{col}'  
+
+📌 **Why this chart?**  
+Line chart helps track trends over data.
+
+📈 **What it shows:**  
+- Variation in {col}  
+- Trends and fluctuations  
+
+💡 **Insight:**  
+Stable lines = consistent data, fluctuations = variability.
+""")
+
+        # 🔥 INSIGHTS BUTTON
         if st.button("Generate Insights"):
 
             accuracy, _, _, _ = run_regression(df_clean)
 
-            st.subheader("🧠 Insights")
+            st.subheader("🧠 Detailed Insights")
 
             st.write(f"""
-            - Dataset contains {df_clean.shape[0]} rows  
-            - Total features: {df_clean.shape[1]}  
-            - Model accuracy: {round(accuracy,2) if accuracy else "N/A"}  
-            - Data cleaned successfully  
-            - Trends visualized using line charts  
-            """)
+📌 **Dataset Summary**
+- Total records: {df_clean.shape[0]}  
+- Features: {df_clean.shape[1]}  
+
+📌 **Data Cleaning Impact**
+- Removed missing & duplicate values  
+- Improved data quality  
+
+📌 **Model Performance**
+- Accuracy: {round(accuracy,2) if accuracy else "N/A"}  
+
+📌 **Trend Analysis**
+- Charts show patterns and variations  
+
+📌 **Business Insight**
+- Useful for predictions and decision-making  
+""")
 
     else:
         st.warning("⚠️ Please upload data first")
+
+
