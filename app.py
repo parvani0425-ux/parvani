@@ -1,77 +1,91 @@
 import streamlit as st
 
-st.set_page_config(page_title="AI Data Platform", layout="wide")
+st.set_page_config(layout="wide")
 
 # ---------- STYLE ----------
 st.markdown("""
 <style>
 
-/* Remove padding */
-.block-container {
-    padding-top: 2rem;
+body {
+    background: linear-gradient(135deg, #0f2027, #2c5364);
 }
 
-/* Center container */
-.center {
+.main {
+    background: transparent;
+}
+
+.hero {
     display: flex;
-    justify-content: center;
     align-items: center;
-    height: 80vh;
-    flex-direction: column;
-    position: relative;
+    justify-content: space-between;
+    padding: 60px;
 }
 
-/* Sphere */
-.sphere {
-    width: 280px;
-    height: 280px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #22d3ee, #6366f1);
-    box-shadow: 0 0 120px rgba(99,102,241,0.7);
-    position: absolute;
-}
-
-/* Text */
 .title {
-    font-size: 48px;
-    font-weight: 700;
+    font-size: 60px;
+    font-weight: bold;
     color: white;
 }
 
 .subtitle {
-    color: #94a3b8;
     font-size: 18px;
+    color: #bbb;
     margin-top: 10px;
-    margin-bottom: 20px;
-    text-align: center;
 }
 
-/* Background */
-body {
-    background: radial-gradient(circle at center, #0b0f1a, #020617);
+.glow {
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #00f2ff, #8e2de2);
+    box-shadow: 0 0 100px #00f2ff, 0 0 200px #8e2de2;
+    animation: pulse 3s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.button {
+    background: linear-gradient(90deg, #8e2de2, #4a00e0);
+    padding: 10px 25px;
+    border-radius: 10px;
+    color: white;
+    font-weight: bold;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- UI ----------
-st.markdown("""
-<div class="center">
-    <div class="sphere"></div>
+# ---------- HERO ----------
+col1, col2 = st.columns([2,1])
 
-    <div style="z-index:2; text-align:center;">
-        <div class="title">The Intelligent Data Sphere</div>
-        <div class="subtitle">
-            Clean • Analyze • Predict • Visualize your data intelligently 🚀
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+with col1:
+    st.markdown('<div class="title">The Intelligent Data Sphere</div>', unsafe_allow_html=True)
+    st.markdown('<div class="subtitle">Where Data Shapes Your Future 🚀</div>', unsafe_allow_html=True)
 
-# ---------- BUTTON ----------
-col1, col2, col3 = st.columns([2,1,2])
+    if st.button("Login / Sign Up"):
+        st.switch_page("pages/1_Login.py")
 
 with col2:
-    if st.button("🔐 Login / Sign Up"):
-        st.switch_page("pages/1_Login.py")
-        
+    st.markdown('<div class="glow"></div>', unsafe_allow_html=True)
+
+# ---------- FEATURES ----------
+st.markdown("## ✨ Features")
+
+c1, c2, c3 = st.columns(3)
+
+with c1:
+    st.info("📊 Data Cleaning\n\nRemove missing values, duplicates instantly")
+
+with c2:
+    st.info("📈 AI Predictions\n\nRegression + insights automatically")
+
+with c3:
+    st.info("📉 Smart Charts\n\nAuto visualization suggestions")
+
+# ---------- FOOTER ----------
+st.markdown("---")
+st.caption("✨ Built with Streamlit | AI Data Platform 🚀")
