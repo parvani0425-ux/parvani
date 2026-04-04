@@ -5,80 +5,73 @@ st.set_page_config(page_title="AI Data Platform", layout="wide")
 # ---------- STYLE ----------
 st.markdown("""
 <style>
-body {
-    background: radial-gradient(circle at center, #0b0f1a, #020617);
-    color: white;
+
+/* Remove padding */
+.block-container {
+    padding-top: 2rem;
 }
 
-/* CENTER CONTAINER */
-.center-box {
+/* Center container */
+.center {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 90vh;
-    text-align: center;
+    height: 80vh;
+    flex-direction: column;
     position: relative;
 }
 
-/* GLOWING SPHERE */
+/* Sphere */
 .sphere {
-    width: 300px;
-    height: 300px;
+    width: 280px;
+    height: 280px;
     border-radius: 50%;
     background: radial-gradient(circle, #22d3ee, #6366f1);
-    box-shadow: 0 0 120px rgba(99,102,241,0.6);
+    box-shadow: 0 0 120px rgba(99,102,241,0.7);
     position: absolute;
 }
 
-/* TEXT OVERLAY */
-.overlay {
-    position: relative;
-    z-index: 2;
-}
-
-/* TITLE */
+/* Text */
 .title {
     font-size: 48px;
     font-weight: 700;
-}
-
-/* SUBTEXT */
-.subtitle {
-    font-size: 18px;
-    color: #94a3b8;
-    margin-bottom: 20px;
-}
-
-/* BUTTON */
-.stButton>button {
-    background: transparent;
-    border: 1px solid #38bdf8;
     color: white;
-    padding: 10px 25px;
-    border-radius: 8px;
 }
+
+.subtitle {
+    color: #94a3b8;
+    font-size: 18px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Background */
+body {
+    background: radial-gradient(circle at center, #0b0f1a, #020617);
+}
+
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- CENTER UI ----------
+# ---------- UI ----------
 st.markdown("""
-<div class="center-box">
-
+<div class="center">
     <div class="sphere"></div>
 
-    <div class="overlay">
+    <div style="z-index:2; text-align:center;">
         <div class="title">The Intelligent Data Sphere</div>
         <div class="subtitle">
             Clean • Analyze • Predict • Visualize your data intelligently 🚀
         </div>
     </div>
-
 </div>
 """, unsafe_allow_html=True)
 
-# ---------- BUTTON (REAL STREAMLIT BUTTON) ----------
+# ---------- BUTTON ----------
 col1, col2, col3 = st.columns([2,1,2])
 
 with col2:
     if st.button("🔐 Login / Sign Up"):
         st.switch_page("pages/1_Login.py")
+        
