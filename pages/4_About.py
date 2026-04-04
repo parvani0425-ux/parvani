@@ -1,5 +1,9 @@
 import streamlit as st
 
+if not st.session_state.get("logged_in", False):
+    st.warning("Please login first")
+    st.stop()
+
 st.title("ℹ️ About")
 
 st.write("""
