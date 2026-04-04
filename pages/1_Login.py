@@ -1,40 +1,23 @@
-import streamlit as st
 import json
+import datetime
 
-st.title("🔐 Login / Signup")
-
-# Load users
-def load_users():
+# Load history
+def load_history():
     try:
-        with open("users.json", "r") as f:
+        with open("login_history.json", "r") as f:
             return json.load(f)
     except:
-        return {}
+        return []
 
-def save_users(users):
-    with open("users.json", "w") as f:
-        json.dump(users, f)
+def save_history(username):
+    history = load_history()
+    history.append({
+        "user": username,
+        "time": str(datetime.datetime.now())
+    })
+    with open("login_history.json", "w") as f:
+        json.dump(history, f, indent=4)
 
-users = load_users()
-
-menu = st.radio("Choose Option", ["Login", "Signup"])
-
-username = st.text_input("Username")
-password = st.text_input("Password", type="password")
-
-if menu == "Signup":
-    if st.button("Create Account"):
-        if username in users:
-            st.warning("User already exists")
-        else:
-            users[username] = password
-            save_users(users)
-            st.success("Account created!")
-
-elif menu == "Login":
-    if st.button("Login"):
-        if username in users and users[username] == password:
-            st.success(f"Welcome {username} 🎉")
-        else:
-            st.error("Invalid credentials")
-            
+# After successful login:
+if login_success:
+    save_history(username)
