@@ -1,66 +1,113 @@
 import streamlit as st
 
-st.set_page_config(page_title="AI Data Platform", layout="wide")
+# 🔥 PAGE CONFIG (FORCE SIDEBAR OPEN)
+st.set_page_config(
+    page_title="AI Data Platform",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# ---------- STYLE ----------
+# 👉 TEST SIDEBAR (REMOVE LATER IF YOU WANT)
+st.sidebar.write("✅ Sidebar is working")
+
+# 🌌 CUSTOM DARK + GRADIENT STYLE
 st.markdown("""
 <style>
-body { background-color: #0e1117; }
-.block-container { padding: 2rem 4rem; }
-
-.hero {
-    text-align: center;
-    padding: 80px 20px;
+body {
+    background-color: #0e1117;
 }
 
-.gradient-text {
+.main {
+    background: linear-gradient(135deg, #0e1117, #1a1f2e);
+}
+
+/* Title Styling */
+.title {
     font-size: 60px;
-    font-weight: 800;
-    background: linear-gradient(90deg, #6a11cb, #2575fc);
+    font-weight: bold;
+    text-align: center;
+    background: linear-gradient(90deg, #6a5cff, #00d4ff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
+/* Subtitle */
 .subtitle {
-    color: #9ca3af;
-    font-size: 18px;
-}
-
-.card {
-    background: rgba(255,255,255,0.05);
-    padding: 25px;
-    border-radius: 15px;
-    backdrop-filter: blur(10px);
     text-align: center;
+    font-size: 18px;
+    color: #9aa4b2;
+    margin-bottom: 30px;
 }
 
-.stButton>button {
-    border-radius: 12px;
-    background: linear-gradient(90deg, #6a11cb, #2575fc);
-    color: white;
-    border: none;
+/* Feature Cards */
+.card {
+    background: #161b22;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    transition: 0.3s;
+    box-shadow: 0px 4px 20px rgba(0,0,0,0.3);
 }
 
-.section { margin-top: 60px; }
+.card:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 8px 30px rgba(0,0,0,0.5);
+}
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- HERO ----------
-st.markdown("""
-<div class="hero">
-<div class="gradient-text">🚀 AI Data Dashboard</div>
-<p class="subtitle">Turn raw data into insights & predictions</p>
-</div>
-""", unsafe_allow_html=True)
+# 🚀 HERO SECTION
+st.markdown('<div class="title">🚀 AI Data Dashboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Turn raw data into insights & predictions</div>', unsafe_allow_html=True)
 
-# ---------- CTA ----------
-st.info("👉 Open **Dashboard** from the sidebar")
+st.write("")
 
-# ---------- FEATURES ----------
+# 📢 INFO BOX
+st.info("👉 Open Dashboard, Login or About from the sidebar")
+
+st.write("")
+
+# ✨ FEATURES SECTION
 st.markdown("## ✨ Features")
 
 col1, col2, col3 = st.columns(3)
 
-col1.markdown("<div class='card'>📊 Data Cleaning</div>", unsafe_allow_html=True)
-col2.markdown("<div class='card'>🤖 AI Predictions</div>", unsafe_allow_html=True)
-col3.markdown("<div class='card'>📈 Interactive Charts</div>", unsafe_allow_html=True)
+with col1:
+    st.markdown('<div class="card">📊<br><b>Data Cleaning</b><br>Remove nulls, duplicates & errors</div>', unsafe_allow_html=True)
+
+with col2:
+    st.markdown('<div class="card">🤖<br><b>AI Predictions</b><br>Regression & accuracy insights</div>', unsafe_allow_html=True)
+
+with col3:
+    st.markdown('<div class="card">📈<br><b>Interactive Charts</b><br>Beautiful Plotly visualizations</div>', unsafe_allow_html=True)
+
+st.write("")
+st.write("")
+
+# 🌟 EXTRA SECTION (MAKE IT LOOK PREMIUM)
+st.markdown("## 🌟 Why this tool?")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.write("""
+    ✔ Clean messy datasets automatically  
+    ✔ Generate KPIs instantly  
+    ✔ Run ML models without coding  
+    ✔ Understand data visually  
+    """)
+
+with col2:
+    st.write("""
+    ✔ Beginner friendly  
+    ✔ Fast & interactive  
+    ✔ Works with any CSV  
+    ✔ Built with AI + Streamlit  
+    """)
+
+st.write("")
+st.write("")
+
+# 🎯 FOOTER
+st.markdown("---")
+st.caption("Built with ❤️ using Streamlit | AI Data Platform")
