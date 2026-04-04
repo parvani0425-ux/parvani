@@ -1,79 +1,68 @@
 import streamlit as st
-import json
-import datetime
 
-st.set_page_config(page_title="Login", layout="wide")
+st.set_page_config(page_title="AI Platform", layout="wide")
 
-# ---------------- USERS ----------------
-def load_users():
-    try:
-        with open("users.json", "r") as f:
-            return json.load(f)
-    except:
-        return {}
+# ---------------- STYLE ----------------
+st.markdown("""
+<style>
+body {
+    background: radial-gradient(circle at top, #0f172a, #020617);
+}
 
-def save_users(users):
-    with open("users.json", "w") as f:
-        json.dump(users, f, indent=4)
+/* Title */
+.title {
+    font-size: 70px;
+    font-weight: bold;
+    text-align: center;
+    background: linear-gradient(90deg, #6366f1, #22d3ee);
+    -webkit-background-clip: text;
+    color: transparent;
+}
 
-# ---------------- HISTORY ----------------
-def load_history():
-    try:
-        with open("login_history.json", "r") as f:
-            return json.load(f)
-    except:
-        return []
+/* Subtitle */
+.subtitle {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 22px;
+}
 
-def save_history(username):
-    history = load_history()
-    history.append({
-        "user": username,
-        "time": str(datetime.datetime.now())
-    })
-    with open("login_history.json", "w") as f:
-        json.dump(history, f, indent=4)
+/* Card */
+.card {
+    background: rgba(255,255,255,0.05);
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# ---------------- UI ----------------
-st.title("🔐 Login / Sign Up")
+# ---------------- HERO ----------------
+st.markdown('<div class="title">AI Data Platform</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Clean • Analyze • Predict • Visualize</div>', unsafe_allow_html=True)
 
-users = load_users()
+st.write("")
+st.write("")
 
-tab1, tab2 = st.tabs(["Login", "Sign Up"])
+# ---------------- FEATURES ----------------
+c1, c2, c3 = st.columns(3)
 
-# -------- LOGIN --------
-with tab1:
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+with c1:
+    st.markdown('<div class="card">📊 Data Cleaning<br>Remove nulls & duplicates</div>', unsafe_allow_html=True)
 
-    if st.button("Login"):
-        if username in users and users[username] == password:
-            st.success("✅ Login successful!")
-            save_history(username)
-        else:
-            st.error("❌ Invalid credentials")
+with c2:
+    st.markdown('<div class="card">📈 Smart Analytics<br>Auto KPIs & charts</div>', unsafe_allow_html=True)
 
-# -------- SIGNUP --------
-with tab2:
-    new_user = st.text_input("Create Username")
-    new_pass = st.text_input("Create Password", type="password")
+with c3:
+    st.markdown('<div class="card">🤖 AI Prediction<br>Regression & insights</div>', unsafe_allow_html=True)
 
-    if st.button("Sign Up"):
-        if new_user in users:
-            st.warning("⚠️ User already exists")
-        else:
-            users[new_user] = new_pass
-            save_users(users)
-            st.success("🎉 Account created! Now login")
+st.write("")
+st.write("")
 
-# -------- LOGIN HISTORY --------
-st.markdown("---")
-st.subheader("🕒 Recent Logins")
+# ---------------- BUTTONS ----------------
+col1, col2, col3 = st.columns([1,2,1])
 
-history = load_history()
+with col2:
+    if st.button("🔐 Login / Sign Up", use_container_width=True):
+        st.switch_page("pages/1_Login.py")
 
-if history:
-    for item in history[-5:][::-1]:
-        st.write(f"👤 {item['user']} | ⏰ {item['time']}")
-else:
-    st.info("No login history yet")
-    
+st.caption("✨ Transform your data into decisions")
