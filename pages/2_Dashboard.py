@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import numpy as np
+import zipfile
 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
@@ -19,11 +20,35 @@ if st.sidebar.button("Logout"):
 # ---------------- MAIN ----------------
 st.title("📊 AI Data Dashboard")
 
-file = st.file_uploader("Upload CSV File", type=["csv"])
+file = st.file_uploader(
+    "Upload File",
+    type=["csv", "xlsx", "xls", "zip", "json"]
+)
+
+# ---------------- FILE HANDLING ----------------
+df = None
 
 if file:
+    file_type = file.name.split(".")[-1].lower()
 
-    df = pd.read_csv(file)
+    if file_type == "csv":
+        df = pd.read_csv(file)
+
+    elif file_type in ["xlsx", "xls"]:
+        df = pd.read_excel(file)
+
+    elif file_type == "json":
+        df = pd.read_json(file)
+
+    elif file_type == "zip":
+        with zipfile.ZipFile(file) as z:
+            for name in z.namelist():
+                if name.endswith(".csv"):
+                    df = pd.read_csv(z.open(name))
+                    break
+
+# ---------------- PROCESS ----------------
+if df is not None:
 
     st.subheader("📂 Raw Data")
     st.dataframe(df.head())
@@ -31,20 +56,32 @@ if file:
     # ---------------- CLEANING ----------------
     st.subheader("🧹 Data Cleaning")
 
-    before = df.shape[0]
+    before = len(df)
     df = df.drop_duplicates()
-    after_dup = df.shape[0]
+    after_dup = len(df)
 
+    missing = df.isnull().sum().sum()
     df = df.dropna()
-    after_na = df.shape[0]
 
-    st.success(f"✔ Removed {before - after_dup} duplicate rows")
-    st.success(f"✔ Removed {after_dup - after_na} missing rows")
+    st.success(f"✔ Removed {before - after_dup} duplicates")
+    st.success(f"✔ Removed {missing} missing values")
 
     st.subheader("✅ Cleaned Data")
     st.dataframe(df.head())
 
-    # ---------------- KPI CARDS ----------------
+    # ---------------- SMART SIMPLIFICATION ----------------
+    st.subheader("🧠 Smart Data Simplification")
+
+    if len(df) > 500:
+        st.info("Large dataset detected → simplifying for better visuals")
+
+        for col in df.select_dtypes(include="object").columns:
+            top_vals = df[col].value_counts().nlargest(7).index
+            df = df[df[col].isin(top_vals)]
+
+        st.success("Showing top 5–7 categories only for clarity")
+
+    # ---------------- KPI ----------------
     st.subheader("📌 KPI Dashboard")
 
     num_cols = df.select_dtypes(include=np.number).columns
@@ -67,36 +104,47 @@ if file:
         y = num_cols[1]
 
         # SCATTER
-        st.markdown("### 🔹 Scatter Plot")
-        st.write(f"Why: Shows relationship between {x} and {y}")
-        fig1 = px.scatter(df, x=x, y=y, title=f"{x} vs {y}")
-        st.plotly_chart(fig1, key="scatter_main")
+        st.markdown(f"### 🔹 Scatter Plot ({x} vs {y})")
+        st.write("Shows relationship between two numeric variables")
+        fig1 = px.scatter(df, x=x, y=y, labels={x: x, y: y})
+        st.plotly_chart(fig1, key="scatter")
 
         # LINE
-        st.markdown("### 🔹 Trend Line")
-        st.write("Why: Shows trend over time/index")
-        fig2 = px.line(df, y=y, title=f"{y} Trend")
-        st.plotly_chart(fig2, key="line_main")
+        st.markdown(f"### 🔹 Trend Line ({y})")
+        st.write("Shows trend pattern over dataset")
+        fig2 = px.line(df, y=y, labels={"y": y})
+        st.plotly_chart(fig2, key="line")
 
-        # HISTOGRAM
-        st.markdown("### 🔹 Distribution")
-        st.write(f"Why: Shows distribution of {x}")
-        fig3 = px.histogram(df, x=x, title=f"{x} Distribution")
-        st.plotly_chart(fig3, key="hist_main")
+        # HIST
+        st.markdown(f"### 🔹 Distribution ({x})")
+        st.write("Shows frequency distribution")
+        fig3 = px.histogram(df, x=x, labels={x: x})
+        st.plotly_chart(fig3, key="hist")
 
         # BOX
-        st.markdown("### 🔹 Outliers Detection")
-        st.write(f"Why: Detects unusual values in {y}")
-        fig4 = px.box(df, y=y, title=f"{y} Outliers")
-        st.plotly_chart(fig4, key="box_main")
+        st.markdown(f"### 🔹 Outliers ({y})")
+        st.write("Detects extreme values")
+        fig4 = px.box(df, y=y, labels={"y": y})
+        st.plotly_chart(fig4, key="box")
 
-        # BAR
+        # BAR (SMART CATEGORY LIMIT)
         cat_cols = df.select_dtypes(include="object").columns
+
         if len(cat_cols) > 0:
-            st.markdown("### 🔹 Category Chart")
-            st.write("Why: Shows category counts")
-            fig5 = px.bar(df, x=cat_cols[0], title="Category Count")
-            st.plotly_chart(fig5, key="bar_main")
+            cat = cat_cols[0]
+
+            top = df[cat].value_counts().nlargest(7)
+
+            st.markdown(f"### 🔹 Category Count ({cat})")
+            st.write("Top categories for clean understanding")
+
+            fig5 = px.bar(
+                x=top.index,
+                y=top.values,
+                labels={"x": cat, "y": "Count"}
+            )
+
+            st.plotly_chart(fig5, key="bar")
 
         # ---------------- REGRESSION ----------------
         st.subheader("📈 Regression Analysis")
@@ -112,69 +160,57 @@ if file:
         preds = model.predict(X_test)
         score = r2_score(Y_test, preds)
 
-        st.success(f"Model Accuracy (R² Score): {round(score, 2)}")
+        st.success(f"Accuracy (R²): {round(score,2)}")
 
-        fig_reg = px.scatter(df, x=x, y=y, title="Regression Fit")
+        fig_reg = px.scatter(df, x=x, y=y)
         fig_reg.add_traces(px.line(x=X_test[x], y=preds).data)
-        st.plotly_chart(fig_reg, key="reg_main")
 
-        st.write("Why: Regression predicts future values based on trend")
+        st.plotly_chart(fig_reg, key="reg")
 
         # ---------------- PREDICTION ----------------
         st.subheader("🤖 Custom Prediction")
 
-        user_val = st.number_input(f"Enter value for {x}", key="basic_input")
+        user_val = st.number_input(f"Enter {x}")
 
-        if st.button("Predict", key="basic_predict"):
+        if st.button("Predict"):
             result = model.predict([[user_val]])
             st.success(f"Predicted {y}: {round(result[0],2)}")
-
-        # ADVANCED
-        st.subheader("⚙️ Advanced Prediction")
-
-        custom_x = st.selectbox("Choose Feature", num_cols, key="feature_select")
-        val = st.number_input("Enter Value", key="adv_input")
-
-        if st.button("Run Custom Prediction", key="adv_predict"):
-            model2 = LinearRegression()
-            model2.fit(df[[custom_x]], df[y])
-            res = model2.predict([[val]])
-            st.success(f"Prediction: {round(res[0],2)}")
 
         # ---------------- INSIGHTS ----------------
         st.subheader("🧠 Insights")
 
         if score > 0.7:
-            st.write("Strong relationship → high prediction reliability")
+            st.write("Strong relationship → reliable predictions")
         elif score > 0.4:
-            st.write("Moderate relationship → usable predictions")
+            st.write("Moderate relationship")
         else:
-            st.write("Weak relationship → low reliability")
+            st.write("Weak relationship")
 
         # ---------------- FINAL DASHBOARD ----------------
         st.subheader("📊 Final Dashboard")
 
-        colA, colB = st.columns(2)
+        col1, col2 = st.columns(2)
 
-        with colA:
-            st.plotly_chart(fig1, key="final_scatter")
-            st.plotly_chart(fig3, key="final_hist")
+        with col1:
+            st.plotly_chart(fig1, key="f1")
+            st.plotly_chart(fig3, key="f3")
 
-        with colB:
-            st.plotly_chart(fig2, key="final_line")
-            st.plotly_chart(fig4, key="final_box")
+        with col2:
+            st.plotly_chart(fig2, key="f2")
+            st.plotly_chart(fig4, key="f4")
 
-        # ---------------- ASK ANYTHING ----------------
+        # ---------------- CHAT ----------------
         st.subheader("💬 Ask Your Data")
 
-        question = st.text_input("Ask something about your dataset")
+        q = st.text_input("Ask something")
 
-        if question:
-            if "average" in question.lower():
+        if q:
+            q = q.lower()
+            if "average" in q:
                 st.write(df.mean(numeric_only=True))
-            elif "max" in question.lower():
+            elif "max" in q:
                 st.write(df.max(numeric_only=True))
-            elif "min" in question.lower():
+            elif "min" in q:
                 st.write(df.min(numeric_only=True))
             else:
                 st.write("Try: average, max, min")
