@@ -1,6 +1,10 @@
 import streamlit as st
 import json
 
+if not st.session_state.get("logged_in", False):
+    st.warning("Please login first")
+    st.stop()
+    
 st.title("👤 Profile & History")
 
 try:
