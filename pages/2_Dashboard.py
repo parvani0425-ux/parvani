@@ -54,78 +54,131 @@ if uploaded:
                 delta=f"Max: {round(numeric[col].max(),2)}"
             )
 
-    # ---------------- CHARTS ----------------
-    st.subheader("📊 Visual Analytics (5 Charts)")
+# ---------------- VISUAL + EXPLANATION ----------------
+st.subheader("📊 Smart Visual Analysis")
 
-    if len(numeric.columns) >= 2:
+if len(numeric.columns) >= 2:
 
-        col1, col2 = st.columns(2)
+    x_col = numeric.columns[0]
+    y_col = numeric.columns[1]
 
-        # 1️⃣ Scatter Plot
-        with col1:
-            fig1 = px.scatter(df_clean, x=numeric.columns[0], y=numeric.columns[1],
-                              title="Scatter Plot (Relationship)")
-            st.plotly_chart(fig1, use_container_width=True)
+    col1, col2 = st.columns(2)
 
-        # 2️⃣ Line Chart
-        with col2:
-            fig2 = px.line(df_clean, y=numeric.columns[0],
-                           title="Trend Line")
-            st.plotly_chart(fig2, use_container_width=True)
+    # ---------------- SCATTER ----------------
+    with col1:
+        fig1 = px.scatter(df_clean, x=x_col, y=y_col,
+                         title=f"{x_col} vs {y_col}")
+        st.plotly_chart(fig1, use_container_width=True)
 
-        col3, col4 = st.columns(2)
-
-        # 3️⃣ Histogram
-        with col3:
-            fig3 = px.histogram(df_clean, x=numeric.columns[0],
-                                title="Distribution")
-            st.plotly_chart(fig3, use_container_width=True)
-
-        # 4️⃣ Box Plot
-        with col4:
-            fig4 = px.box(df_clean, y=numeric.columns[0],
-                          title="Outliers Detection")
-            st.plotly_chart(fig4, use_container_width=True)
-
-        # 5️⃣ Correlation Heatmap
-        st.subheader("🔥 Correlation Heatmap")
-        corr = numeric.corr()
-        fig5 = px.imshow(corr, text_auto=True, title="Feature Correlation")
-        st.plotly_chart(fig5, use_container_width=True)
-
-    # ---------------- REGRESSION ----------------
-    if len(numeric.columns) >= 2:
-        st.subheader("🤖 Regression & Prediction")
-
-        X = numeric.iloc[:, :-1]
-        y = numeric.iloc[:, -1]
-
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-        model = LinearRegression()
-        model.fit(X_train, y_train)
-
-        preds = model.predict(X_test)
-        score = r2_score(y_test, preds)
-
-        st.success(f"Model Accuracy (R²): {round(score, 3)}")
-
-        # Prediction chart
-        fig_pred = px.scatter(x=y_test, y=preds,
-                              labels={'x': 'Actual', 'y': 'Predicted'},
-                              title="Prediction vs Actual")
-        st.plotly_chart(fig_pred, use_container_width=True)
-
-    # ---------------- INSIGHTS ----------------
-    st.subheader("🧠 Insights")
-
-    if not numeric.empty:
-        st.write(f"""
-        - Dataset contains **{df_clean.shape[0]} cleaned rows**
-        - Strong relationships visible in correlation heatmap
-        - KPI values indicate overall trends in key variables
-        - Regression model shows prediction capability with accuracy score
+        st.info(f"""
+        📌 WHAT: Shows relationship between {x_col} and {y_col}  
+        ❓ WHY: To identify correlation and patterns  
+        ⚙ HOW: Each dot represents one data point  
         """)
+
+    # ---------------- LINE ----------------
+    with col2:
+        fig2 = px.line(df_clean, y=x_col, title=f"{x_col} Trend Over Time")
+        st.plotly_chart(fig2, use_container_width=True)
+
+        st.info(f"""
+        📌 WHAT: Trend of {x_col} over dataset index  
+        ❓ WHY: To observe growth or decline  
+        ⚙ HOW: Connected points show progression  
+        """)
+
+    col3, col4 = st.columns(2)
+
+    # ---------------- HISTOGRAM ----------------
+    with col3:
+        fig3 = px.histogram(df_clean, x=x_col, title=f"{x_col} Distribution")
+        st.plotly_chart(fig3, use_container_width=True)
+
+        st.info(f"""
+        📌 WHAT: Frequency distribution of {x_col}  
+        ❓ WHY: Understand spread and skewness  
+        ⚙ HOW: Bars show count of values  
+        """)
+
+    # ---------------- BOX ----------------
+    with col4:
+        fig4 = px.box(df_clean, y=x_col, title=f"{x_col} Outliers")
+        st.plotly_chart(fig4, use_container_width=True)
+
+        st.info(f"""
+        📌 WHAT: Detects outliers in {x_col}  
+        ❓ WHY: Identify abnormal values  
+        ⚙ HOW: Box shows quartiles & whiskers  
+        """)
+
+    # ---------------- HEATMAP ----------------
+    st.subheader("🔥 Correlation Insight")
+
+    corr = numeric.corr()
+    fig5 = px.imshow(corr, text_auto=True)
+    st.plotly_chart(fig5, use_container_width=True)
+
+    st.info("""
+    📌 WHAT: Correlation between variables  
+    ❓ WHY: Understand relationships strength  
+    ⚙ HOW: Values range from -1 to +1  
+    """)
+
+    # ---------------- ML MODEL ----------------
+st.subheader("🤖 Prediction Model")
+
+if len(numeric.columns) >= 2:
+
+    target = numeric.columns[-1]
+    features = numeric.columns[:-1]
+
+    st.write(f"🎯 Predicting: **{target}**")
+
+    X = df_clean[features]
+    y = df_clean[target]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+
+    preds = model.predict(X_test)
+    score = r2_score(y_test, preds)
+
+    st.success(f"📊 Model Accuracy (R² Score): {round(score,3)}")
+
+    # Prediction vs Actual
+    fig_pred = px.scatter(x=y_test, y=preds,
+                          labels={"x":"Actual", "y":"Predicted"},
+                          title="Prediction vs Actual")
+    st.plotly_chart(fig_pred, use_container_width=True)
+
+    # ---------------- USER INPUT ----------------
+    st.subheader("🔮 Make Your Own Prediction")
+
+    user_inputs = []
+
+    cols = st.columns(len(features))
+
+    for i, col in enumerate(features):
+        val = cols[i].number_input(f"Enter {col}", value=float(X[col].mean()))
+        user_inputs.append(val)
+
+    if st.button("Predict"):
+        result = model.predict([user_inputs])[0]
+        st.success(f"🎯 Predicted {target}: {round(result,2)}")
+
+   # ---------------- INSIGHTS ----------------
+st.subheader("🧠 Final Insights")
+
+st.write(f"""
+✔ Dataset cleaned and optimized  
+✔ Strong correlations visible in heatmap  
+✔ Distribution shows data spread patterns  
+✔ Outliers detected and handled  
+✔ Regression model predicts **{target}** with accuracy {round(score,3)}  
+✔ You can now input your own values for real-time prediction  
+""")
 
     # ---------------- AI EXPLAIN ----------------
     if st.button("🤖 Explain Analysis"):
