@@ -350,43 +350,75 @@ if df is not None:
     for i in insights:
         st.success(f"✔ {i}")
 
-    # ---------------- RECOMMENDED QUESTIONS ----------------
-    st.markdown("### 💡 You May Also Want To Know")
+   # ---------------- RECOMMENDED QUESTIONS ----------------
+st.markdown("### 💡 You May Also Want To Know")
 
-    for q in recommendations:
-        st.info(f"👉 {q}")
+selected_question = None
 
-    # ---------------- SMART QUESTION INPUT ----------------
-    st.markdown("### 💬 Ask Anything About Your Data")
+for i, q in enumerate(recommendations):
+    if st.button(f"👉 {q}", key=f"rec_{i}"):
+        selected_question = q
 
-    user_q = st.text_input("Ask your own question")
+# ---------------- SMART QUESTION INPUT ----------------
+st.markdown("### 💬 Ask Anything About Your Data")
 
-    if user_q:
+# if clicked → auto-fill
+default_q = selected_question if selected_question else ""
 
-        user_q = user_q.lower()
+user_q = st.text_input("Ask your own question", value=default_q)
 
-        if "mean" in user_q:
-            st.write(df.mean(numeric_only=True))
+# ---------------- ANSWER ENGINE ----------------
+def answer_query(query, df):
+    query = query.lower()
 
-        elif "median" in user_q:
-            st.write(df.median(numeric_only=True))
+    num_cols = df.select_dtypes(include=np.number).columns
+    cat_cols = df.select_dtypes(include="object").columns
 
-        elif "mode" in user_q:
-            st.write(df.mode(numeric_only=True))
+    if len(num_cols) >= 1:
+        col = num_cols[0]
 
-        elif "max" in user_q:
-            st.write(df.max(numeric_only=True))
+    if "mean" in query:
+        return df.mean(numeric_only=True)
 
-        elif "min" in user_q:
-            st.write(df.min(numeric_only=True))
+    elif "median" in query:
+        return df.median(numeric_only=True)
 
-        elif "correlation" in user_q and len(num_cols) >= 2:
-            st.write(f"Correlation between {x} and {y}:", round(df[x].corr(df[y]),2))
+    elif "mode" in query:
+        return df.mode(numeric_only=True)
 
-        elif "summary" in user_q:
-            st.write(df.describe())
+    elif "max" in query:
+        return df.max(numeric_only=True)
 
-        else:
-            st.warning("Try asking about mean, max, correlation, summary, etc.")
+    elif "min" in query:
+        return df.min(numeric_only=True)
 
+    elif "top" in query and len(cat_cols) > 0:
+        cat = cat_cols[0]
+        return df[cat].value_counts().head(5)
 
+    elif "category" in query and len(cat_cols) > 0:
+        cat = cat_cols[0]
+        return df[cat].value_counts()
+
+    elif "correlation" in query and len(num_cols) >= 2:
+        return df[num_cols].corr()
+
+    elif "trend" in query and len(num_cols) >= 2:
+        return f"Trend between {num_cols[0]} and {num_cols[1]} is {round(df[num_cols[0]].corr(df[num_cols[1]]),2)}"
+
+    elif "summary" in query:
+        return df.describe()
+
+    else:
+        return "Try asking about mean, max, top categories, correlation, etc."
+
+# ---------------- SHOW ANSWER ----------------
+if user_q:
+    st.markdown("### 🤖 AI Answer")
+    result = answer_query(user_q, df)
+
+    if isinstance(result, str):
+        st.info(result)
+    else:
+        st.dataframe(result)
+        
