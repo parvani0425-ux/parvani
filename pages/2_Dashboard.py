@@ -244,4 +244,3 @@ if df is not None:
 
             st.write(f"Top categories in {cat}")
 
-
