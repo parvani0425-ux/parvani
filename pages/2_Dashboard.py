@@ -177,108 +177,86 @@ if df is not None:
         Shows distribution & spread of values.
         """)
 
-        # ---------------- REGRESSION ----------------
-        st.subheader("📈 Regression Analysis")
+# ================= AI INSIGHTS (NEW) =================
 
-        X = df[[x]]
-        Y = df[y]
+if df is not None:
 
-        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
+    st.markdown("---")
+    st.subheader("🤖 Smart AI Insights")
 
-        model = LinearRegression()
-        model.fit(X_train, Y_train)
+    num_cols = df.select_dtypes(include=np.number).columns
+    cat_cols = df.select_dtypes(include="object").columns
 
-        preds = model.predict(X_test)
-        score = r2_score(Y_test, preds)
+    # -------- SMART INSIGHTS --------
+    st.markdown("### 📊 AI Insights")
 
-        st.success(f"Accuracy (R²): {round(score,2)}")
+    st.success(f"✔ Dataset has {df.shape[0]} rows & {df.shape[1]} columns")
 
-        fig_reg = px.scatter(df, x=x, y=y)
-        fig_reg.add_traces(px.line(x=X_test[x], y=preds).data)
-        st.plotly_chart(fig_reg, key="reg")
+    if len(cat_cols) > 0:
+        st.success(f"✔ Most frequent {cat_cols[0]} → {df[cat_cols[0]].mode()[0]}")
 
-        st.markdown("#### 📌 Explanation")
-        st.write(f"""
-        Regression predicts {y} based on {x}.  
-        R² score shows model accuracy.
-        """)
+    if len(num_cols) >= 2:
+        corr_val = df[num_cols[0]].corr(df[num_cols[1]])
+        st.success(f"✔ Correlation between {num_cols[0]} & {num_cols[1]} → {round(corr_val,2)}")
 
+    # -------- RECOMMEND QUESTIONS --------
+    st.markdown("### 💡 Recommended Questions")
 
-        # ---------------- STORYTELLING DASHBOARD ----------------
-        st.subheader("📖 Storytelling Dashboard")
+    recommendations = []
 
-        st.markdown("### 🧠 Data Story Overview")
+    if len(num_cols) > 0:
+        recommendations.append(f"What is the trend of {num_cols[0]}?")
+        recommendations.append(f"What are outliers in {num_cols[0]}?")
 
-        st.write(f"""
-        This dataset contains **{df.shape[0]} rows** and **{df.shape[1]} columns**.  
-        Relationship analyzed between **{x} and {y}**.
-        """)
+    if len(cat_cols) > 0:
+        recommendations.append(f"What are top categories in {cat_cols[0]}?")
+        recommendations.append(f"How does {cat_cols[0]} affect values?")
 
-        col1, col2 = st.columns(2)
+    if "selected_q" not in st.session_state:
+        st.session_state.selected_q = ""
 
-        with col1:
-            fig_story1 = px.scatter(df, x=x, y=y, text=df[y].round(2))
-            fig_story1.update_traces(textposition="top center")
-            st.plotly_chart(fig_story1, key="story_scatter")
+    for i, q in enumerate(recommendations):
+        if st.button(q, key=f"ai_q_{i}"):
+            st.session_state.selected_q = q
 
-            st.write(f"{x} vs {y} relationship → pattern shows correlation")
+    # -------- AI Q&A --------
+    st.markdown("### 💬 Ask AI About Your Data")
 
-        with col2:
-            fig_story2 = px.line(df, y=y, markers=True)
-            st.plotly_chart(fig_story2, key="story_line")
+    user_q = st.text_input("Ask anything", value=st.session_state.selected_q)
 
-            st.write(f"{y} trend shows growth/decline behavior")
+    def answer_ai(q):
+        q = q.lower()
 
-        fig_story3 = px.histogram(df, x=x, text_auto=True)
-        st.plotly_chart(fig_story3, key="story_hist")
+        try:
+            if "trend" in q:
+                return "Trend visible in line chart above."
 
-        st.write(f"{x} distribution shows spread of values")
+            elif "outlier" in q:
+                col = num_cols[0]
+                q1 = df[col].quantile(0.25)
+                q3 = df[col].quantile(0.75)
+                iqr = q3 - q1
+                return df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
 
-        if len(cat_cols) > 0:
-            fig_story4 = px.bar(x=top.index, y=top.values, text=top.values)
-            fig_story4.update_traces(textposition="outside")
-            st.plotly_chart(fig_story4, key="story_bar")
+            elif "top" in q:
+                return df[cat_cols[0]].value_counts().head(5)
 
-            st.write(f"Top categories in {cat}")
+            elif "affect" in q:
+                return df.groupby(cat_cols[0])[num_cols[0]].mean()
 
-       st.markdown("### 🔍 Final Insight")
+            else:
+                return "Ask about trend, outliers, or categories."
 
-# FIX: define correlation
-try:
-    corr = df[x].corr(df[y])
+        except Exception as e:
+            return f"Error: {e}"
 
-    if corr > 0.7:
-        st.success(f"Strong positive relationship between {x} and {y}")
-    elif corr < -0.7:
-        st.warning(f"Strong negative relationship between {x} and {y}")
-    else:
-        st.info("Moderate/weak relationship")
+    if user_q:
+        st.markdown("### 🤖 AI Answer")
 
-except:
-    st.info("Not enough data for correlation analysis")
+        result = answer_ai(user_q)
 
- # ---------------- ASK ----------------
-        st.subheader("💬 Ask Your Data")
-
-        option = st.selectbox(
-            "Choose Analysis",
-            ["Mean","Median","Mode","Max","Min","Std Dev","Variance"]
-        )
-
-        if st.button("Run Analysis"):
-
-            if option == "Mean":
-                st.write(df.mean(numeric_only=True))
-            elif option == "Median":
-                st.write(df.median(numeric_only=True))
-            elif option == "Mode":
-                st.write(df.mode(numeric_only=True))
-            elif option == "Max":
-                st.write(df.max(numeric_only=True))
-            elif option == "Min":
-                st.write(df.min(numeric_only=True))
-            elif option == "Std Dev":
-                st.write(df.std(numeric_only=True))
-            elif option == "Variance":
-                st.write(df.var(numeric_only=True))
-
+        if isinstance(result, str):
+            st.info(result)
+        else:
+            st.dataframe(result)
+            
