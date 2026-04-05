@@ -289,9 +289,9 @@ if df is not None:
 
 
 # ---------------- AI INSIGHTS & RECOMMENDATIONS ----------------
-st.subheader("🤖 AI Insights & Smart Recommendations")
-
 if df is not None:
+
+    st.subheader("🤖 AI Insights & Smart Recommendations")
 
     insights = []
     recommendations = []
@@ -350,75 +350,78 @@ if df is not None:
     for i in insights:
         st.success(f"✔ {i}")
 
-   # ---------------- RECOMMENDED QUESTIONS ----------------
-st.markdown("### 💡 You May Also Want To Know")
+    # ---------------- RECOMMENDED QUESTIONS ----------------
+    st.markdown("### 💡 You May Also Want To Know")
 
-selected_question = None
+    if "selected_q" not in st.session_state:
+        st.session_state.selected_q = ""
 
-for i, q in enumerate(recommendations):
-    if st.button(f"👉 {q}", key=f"rec_{i}"):
-        selected_question = q
+    for i, q in enumerate(recommendations):
+        if st.button(f"👉 {q}", key=f"rec_{i}"):
+            st.session_state.selected_q = q
 
-# ---------------- SMART QUESTION INPUT ----------------
-st.markdown("### 💬 Ask Anything About Your Data")
+    # ---------------- ASK SECTION ----------------
+    st.markdown("### 💬 Ask Anything About Your Data")
 
-# if clicked → auto-fill
-default_q = selected_question if selected_question else ""
+    user_q = st.text_input(
+        "Ask your own question",
+        value=st.session_state.selected_q
+    )
 
-user_q = st.text_input("Ask your own question", value=default_q)
+    def answer_query(query, df):
+        query = query.lower()
 
-# ---------------- ANSWER ENGINE ----------------
-def answer_query(query, df):
-    query = query.lower()
+        num_cols = df.select_dtypes(include=np.number).columns
+        cat_cols = df.select_dtypes(include="object").columns
 
-    num_cols = df.select_dtypes(include=np.number).columns
-    cat_cols = df.select_dtypes(include="object").columns
+        if "mean" in query:
+            return df.mean(numeric_only=True)
 
-    if len(num_cols) >= 1:
-        col = num_cols[0]
+        elif "median" in query:
+            return df.median(numeric_only=True)
 
-    if "mean" in query:
-        return df.mean(numeric_only=True)
+        elif "mode" in query:
+            return df.mode(numeric_only=True)
 
-    elif "median" in query:
-        return df.median(numeric_only=True)
+        elif "max" in query:
+            return df.max(numeric_only=True)
 
-    elif "mode" in query:
-        return df.mode(numeric_only=True)
+        elif "min" in query:
+            return df.min(numeric_only=True)
 
-    elif "max" in query:
-        return df.max(numeric_only=True)
+        elif "top" in query and len(cat_cols) > 0:
+            cat = cat_cols[0]
+            return df[cat].value_counts().head(5)
 
-    elif "min" in query:
-        return df.min(numeric_only=True)
+        elif "category" in query and len(cat_cols) > 0:
+            cat = cat_cols[0]
+            return df[cat].value_counts()
 
-    elif "top" in query and len(cat_cols) > 0:
-        cat = cat_cols[0]
-        return df[cat].value_counts().head(5)
+        elif "correlation" in query and len(num_cols) >= 2:
+            return df[num_cols].corr()
 
-    elif "category" in query and len(cat_cols) > 0:
-        cat = cat_cols[0]
-        return df[cat].value_counts()
+        elif "trend" in query or "affect" in query or "impact" in query:
+            if len(num_cols) >= 2:
+                col1, col2 = num_cols[0], num_cols[1]
+                corr = df[col1].corr(df[col2])
+                return f"{col1} and {col2} have correlation {round(corr,2)}"
 
-    elif "correlation" in query and len(num_cols) >= 2:
-        return df[num_cols].corr()
+        elif "outlier" in query:
+            if len(num_cols) > 0:
+                col = num_cols[0]
+                q1 = df[col].quantile(0.25)
+                q3 = df[col].quantile(0.75)
+                iqr = q3 - q1
+                return df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
 
-    elif "trend" in query and len(num_cols) >= 2:
-        return f"Trend between {num_cols[0]} and {num_cols[1]} is {round(df[num_cols[0]].corr(df[num_cols[1]]),2)}"
+        elif "summary" in query:
+            return df.describe()
 
-    elif "summary" in query:
-        return df.describe()
+        else:
+            return "Try asking about mean, max, correlation, trends, or categories."
 
-    else:
-        return "Try asking about mean, max, top categories, correlation, etc."
-
-# ---------------- SHOW ANSWER ----------------
-if user_q:
-    st.markdown("### 🤖 AI Answer")
-    result = answer_query(user_q, df)
-
-    if isinstance(result, str):
-        st.info(result)
-    else:
-        st.dataframe(result)
+    # ---------------- ANSWER ----------------
+    if user_q:
+        st.markdown("### 🤖 AI Answer")
+        st.info(answer_query(user_q, df))
         
