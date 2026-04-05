@@ -241,14 +241,17 @@ if df is not None:
 
             st.write(f"Top categories in {cat}")
 
-        st.markdown("### 🔍 Final Insight")
+      st.markdown("### 🔍 Final Insight")
 
-        if corr > 0.7:
-            st.success(f"Strong positive relationship between {x} and {y}")
-        elif corr < -0.7:
-            st.warning(f"Strong negative relationship")
-        else:
-            st.info("Moderate/weak relationship")
+# FIXED: define corr properly
+corr = df[x].corr(df[y])
+
+if corr > 0.7:
+    st.success(f"Strong positive relationship between {x} and {y}")
+elif corr < -0.7:
+    st.warning("Strong negative relationship")
+else:
+    st.info("Moderate/weak relationship")
 
  # ---------------- ASK ----------------
         st.subheader("💬 Ask Your Data")
@@ -400,12 +403,9 @@ if 'df' in locals() and df is not None:
             return f"Error processing query: {e}"
 
     # ---------------- SHOW ANSWER ----------------
-    if user_q:
-        st.markdown("### 🤖 AI Answer")
-        result = answer_query(user_q, df)
+   # FIXED: handle both typed + clicked questions
+final_query = user_q if user_q else st.session_state.selected_q
 
-        if isinstance(result, str):
-            st.info(result)
-        else:
-            st.dataframe(result)
-            
+if final_query:
+    st.markdown("### 🤖 AI Answer
+                
