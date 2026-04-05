@@ -368,7 +368,7 @@ if df is not None:
         value=st.session_state.selected_q
     )
 
-    def answer_query(query, df):
+   def answer_query(query, df):
     query = query.lower()
 
     num_cols = df.select_dtypes(include=np.number).columns
