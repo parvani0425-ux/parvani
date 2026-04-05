@@ -335,3 +335,70 @@ if df is not None:
         if st.button(f"👉 {q}", key=f"q_{i}"):
             st.session_state.selected_q = q
 
+# ================= ASK ANYTHING =================
+if df is not None:
+
+    st.subheader("💬 Ask Anything About Your Data")
+
+    user_q = st.text_input(
+        "Ask your question",
+        value=st.session_state.selected_q
+    )
+
+    def answer_question(q):
+        q = q.lower()
+
+        try:
+            # TREND
+            if "trend" in q:
+                return "Check the trend chart above for visual insight."
+
+            # OUTLIERS
+            elif "outlier" in q:
+                col = num_cols[0]
+                q1 = df[col].quantile(0.25)
+                q3 = df[col].quantile(0.75)
+                iqr = q3 - q1
+                outliers = df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
+                return outliers
+
+            # DISTRIBUTION
+            elif "distribution" in q:
+                return f"{num_cols[0]} distribution shown in histogram above."
+
+            # TOP CATEGORIES
+            elif "top" in q:
+                return df[cat_cols[0]].value_counts().head(5)
+
+            # IMPACT
+            elif "impact" in q:
+                return df.groupby(cat_cols[0])[num_cols[0]].mean()
+
+            # RELATIONSHIP
+            elif "relationship" in q:
+                corr = df[num_cols[0]].corr(df[num_cols[1]])
+                return f"Correlation = {round(corr,2)}"
+
+            # INFLUENCE
+            elif "influence" in q:
+                corr = df.corr(numeric_only=True)[num_cols[1]].sort_values(ascending=False)
+                return corr
+
+            else:
+                return "Try clicking a recommended question 👆"
+
+        except Exception as e:
+            return str(e)
+
+    # SHOW ANSWER
+    if user_q:
+        st.subheader("🤖 AI Answer")
+
+        result = answer_question(user_q)
+
+        if isinstance(result, str):
+            st.info(result)
+        else:
+            st.dataframe(result)
+
+
