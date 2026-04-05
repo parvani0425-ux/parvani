@@ -207,3 +207,41 @@ if df is not None:
         R² score shows model accuracy.
         """)
 
+  # ---------------- STORYTELLING DASHBOARD ----------------
+        st.subheader("📖 Storytelling Dashboard")
+
+        st.markdown("### 🧠 Data Story Overview")
+
+        st.write(f"""
+        This dataset contains **{df.shape[0]} rows** and **{df.shape[1]} columns**.  
+        Relationship analyzed between **{x} and {y}**.
+        """)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            fig_story1 = px.scatter(df, x=x, y=y, text=df[y].round(2))
+            fig_story1.update_traces(textposition="top center")
+            st.plotly_chart(fig_story1, key="story_scatter")
+
+            st.write(f"{x} vs {y} relationship → pattern shows correlation")
+
+        with col2:
+            fig_story2 = px.line(df, y=y, markers=True)
+            st.plotly_chart(fig_story2, key="story_line")
+
+            st.write(f"{y} trend shows growth/decline behavior")
+
+        fig_story3 = px.histogram(df, x=x, text_auto=True)
+        st.plotly_chart(fig_story3, key="story_hist")
+
+        st.write(f"{x} distribution shows spread of values")
+
+        if len(cat_cols) > 0:
+            fig_story4 = px.bar(x=top.index, y=top.values, text=top.values)
+            fig_story4.update_traces(textposition="outside")
+            st.plotly_chart(fig_story4, key="story_bar")
+
+            st.write(f"Top categories in {cat}")
+
+
