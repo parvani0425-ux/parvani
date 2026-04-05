@@ -216,31 +216,6 @@ if df is not None:
         else:
             st.write("Weak relationship")
 
-        # ---------------- ASK ----------------
-        st.subheader("💬 Ask Your Data")
-
-        option = st.selectbox(
-            "Choose Analysis",
-            ["Mean","Median","Mode","Max","Min","Std Dev","Variance"]
-        )
-
-        if st.button("Run Analysis"):
-
-            if option == "Mean":
-                st.write(df.mean(numeric_only=True))
-            elif option == "Median":
-                st.write(df.median(numeric_only=True))
-            elif option == "Mode":
-                st.write(df.mode(numeric_only=True))
-            elif option == "Max":
-                st.write(df.max(numeric_only=True))
-            elif option == "Min":
-                st.write(df.min(numeric_only=True))
-            elif option == "Std Dev":
-                st.write(df.std(numeric_only=True))
-            elif option == "Variance":
-                st.write(df.var(numeric_only=True))
-
         # ---------------- STORYTELLING DASHBOARD ----------------
         st.subheader("📖 Storytelling Dashboard")
 
@@ -286,4 +261,132 @@ if df is not None:
             st.warning(f"Strong negative relationship")
         else:
             st.info("Moderate/weak relationship")
-            
+
+ # ---------------- ASK ----------------
+        st.subheader("💬 Ask Your Data")
+
+        option = st.selectbox(
+            "Choose Analysis",
+            ["Mean","Median","Mode","Max","Min","Std Dev","Variance"]
+        )
+
+        if st.button("Run Analysis"):
+
+            if option == "Mean":
+                st.write(df.mean(numeric_only=True))
+            elif option == "Median":
+                st.write(df.median(numeric_only=True))
+            elif option == "Mode":
+                st.write(df.mode(numeric_only=True))
+            elif option == "Max":
+                st.write(df.max(numeric_only=True))
+            elif option == "Min":
+                st.write(df.min(numeric_only=True))
+            elif option == "Std Dev":
+                st.write(df.std(numeric_only=True))
+            elif option == "Variance":
+                st.write(df.var(numeric_only=True))
+
+
+# ---------------- AI INSIGHTS & RECOMMENDATIONS ----------------
+st.subheader("🤖 AI Insights & Smart Recommendations")
+
+if df is not None:
+
+    insights = []
+    recommendations = []
+
+    # Basic dataset info
+    rows, cols = df.shape
+    insights.append(f"The dataset contains {rows} rows and {cols} columns.")
+
+    # Numeric analysis
+    num_cols = df.select_dtypes(include=np.number).columns
+    cat_cols = df.select_dtypes(include="object").columns
+
+    if len(num_cols) >= 2:
+        x = num_cols[0]
+        y = num_cols[1]
+
+        corr = df[x].corr(df[y])
+
+        insights.append(f"The relationship between {x} and {y} has correlation {round(corr,2)}.")
+
+        if corr > 0.7:
+            insights.append("There is a strong positive relationship — predictions can be reliable.")
+        elif corr < -0.7:
+            insights.append("There is a strong negative relationship.")
+        else:
+            insights.append("The relationship is moderate or weak.")
+
+        recommendations.extend([
+            f"What is the trend of {y} over time?",
+            f"Which factors influence {y} the most?",
+            f"Can {x} predict {y} accurately?",
+            f"What are the outliers in {x} and {y}?",
+        ])
+
+    # Category insights
+    if len(cat_cols) > 0:
+        cat = cat_cols[0]
+        top_cat = df[cat].value_counts().idxmax()
+
+        insights.append(f"The most frequent category in {cat} is '{top_cat}'.")
+
+        recommendations.extend([
+            f"Which category in {cat} has highest impact?",
+            f"How does {cat} affect numeric values?",
+            f"What are top 5 categories in {cat}?",
+        ])
+
+    # Missing values insight
+    missing = df.isnull().sum().sum()
+    if missing > 0:
+        insights.append("Dataset had missing values which were cleaned.")
+
+    # ---------------- DISPLAY INSIGHTS ----------------
+    st.markdown("### 📊 Key AI Insights")
+
+    for i in insights:
+        st.success(f"✔ {i}")
+
+    # ---------------- RECOMMENDED QUESTIONS ----------------
+    st.markdown("### 💡 You May Also Want To Know")
+
+    for q in recommendations:
+        st.info(f"👉 {q}")
+
+    # ---------------- SMART QUESTION INPUT ----------------
+    st.markdown("### 💬 Ask Anything About Your Data")
+
+    user_q = st.text_input("Ask your own question")
+
+    if user_q:
+
+        user_q = user_q.lower()
+
+        if "mean" in user_q:
+            st.write(df.mean(numeric_only=True))
+
+        elif "median" in user_q:
+            st.write(df.median(numeric_only=True))
+
+        elif "mode" in user_q:
+            st.write(df.mode(numeric_only=True))
+
+        elif "max" in user_q:
+            st.write(df.max(numeric_only=True))
+
+        elif "min" in user_q:
+            st.write(df.min(numeric_only=True))
+
+        elif "correlation" in user_q and len(num_cols) >= 2:
+            st.write(f"Correlation between {x} and {y}:", round(df[x].corr(df[y]),2))
+
+        elif "summary" in user_q:
+            st.write(df.describe())
+
+        else:
+            st.warning("Try asking about mean, max, correlation, summary, etc.")
+
+
