@@ -203,18 +203,6 @@ if df is not None:
         R² score shows model accuracy.
         """)
 
-        # ---------------- INSIGHTS ----------------
-        st.subheader("🧠 Insights")
-
-        corr = df[x].corr(df[y])
-        st.write(f"Correlation: {round(corr,2)}")
-
-        if corr > 0.7:
-            st.write("Strong relationship → reliable predictions")
-        elif corr > 0.4:
-            st.write("Moderate relationship")
-        else:
-            st.write("Weak relationship")
 
         # ---------------- STORYTELLING DASHBOARD ----------------
         st.subheader("📖 Storytelling Dashboard")
