@@ -369,59 +369,78 @@ if df is not None:
     )
 
     def answer_query(query, df):
-        query = query.lower()
+    query = query.lower()
 
-        num_cols = df.select_dtypes(include=np.number).columns
-        cat_cols = df.select_dtypes(include="object").columns
+    num_cols = df.select_dtypes(include=np.number).columns
+    cat_cols = df.select_dtypes(include="object").columns
 
-        if "mean" in query:
-            return df.mean(numeric_only=True)
+    # ---------------- MEAN / STATS ----------------
+    if "mean" in query:
+        return df.mean(numeric_only=True)
 
-        elif "median" in query:
-            return df.median(numeric_only=True)
+    elif "median" in query:
+        return df.median(numeric_only=True)
 
-        elif "mode" in query:
-            return df.mode(numeric_only=True)
+    elif "mode" in query:
+        return df.mode(numeric_only=True)
 
-        elif "max" in query:
-            return df.max(numeric_only=True)
+    elif "max" in query:
+        return df.max(numeric_only=True)
 
-        elif "min" in query:
-            return df.min(numeric_only=True)
+    elif "min" in query:
+        return df.min(numeric_only=True)
 
-        elif "top" in query and len(cat_cols) > 0:
+    # ---------------- TOP CATEGORIES ----------------
+    elif "top" in query and len(cat_cols) > 0:
+        cat = cat_cols[0]
+        return df[cat].value_counts().head(5)
+
+    # ---------------- CATEGORY IMPACT ----------------
+    elif "category" in query or "affect" in query:
+        if len(cat_cols) > 0 and len(num_cols) > 0:
             cat = cat_cols[0]
-            return df[cat].value_counts().head(5)
+            num = num_cols[0]
+            return df.groupby(cat)[num].mean().sort_values(ascending=False)
 
-        elif "category" in query and len(cat_cols) > 0:
-            cat = cat_cols[0]
-            return df[cat].value_counts()
+    # ---------------- CORRELATION ----------------
+    elif "correlation" in query:
+        return df[num_cols].corr()
 
-        elif "correlation" in query and len(num_cols) >= 2:
-            return df[num_cols].corr()
+    # ---------------- TREND ----------------
+    elif "trend" in query or "over time" in query:
+        if len(num_cols) > 0:
+            col = num_cols[0]
+            return f"{col} shows variation over dataset index. Use line chart for better visualization."
 
-        elif "trend" in query or "affect" in query or "impact" in query:
-            if len(num_cols) >= 2:
-                col1, col2 = num_cols[0], num_cols[1]
-                corr = df[col1].corr(df[col2])
-                return f"{col1} and {col2} have correlation {round(corr,2)}"
+    # ---------------- FACTORS INFLUENCE ----------------
+    elif "influence" in query or "impact" in query:
+        if len(num_cols) >= 2:
+            target = num_cols[1]
+            corr = df.corr(numeric_only=True)[target].sort_values(ascending=False)
+            return f"Top influencing factors for {target}:\n\n{corr}"
 
-        elif "outlier" in query:
-            if len(num_cols) > 0:
-                col = num_cols[0]
-                q1 = df[col].quantile(0.25)
-                q3 = df[col].quantile(0.75)
-                iqr = q3 - q1
-                return df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
+    # ---------------- PREDICTION ----------------
+    elif "predict" in query:
+        if len(num_cols) >= 2:
+            x = num_cols[0]
+            y = num_cols[1]
+            corr = df[x].corr(df[y])
+            return f"{x} can {'strongly' if abs(corr)>0.7 else 'moderately'} predict {y} (correlation = {round(corr,2)})"
 
-        elif "summary" in query:
-            return df.describe()
+    # ---------------- OUTLIERS ----------------
+    elif "outlier" in query:
+        if len(num_cols) > 0:
+            col = num_cols[0]
+            q1 = df[col].quantile(0.25)
+            q3 = df[col].quantile(0.75)
+            iqr = q3 - q1
+            outliers = df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
+            return outliers
 
-        else:
-            return "Try asking about mean, max, correlation, trends, or categories."
+    # ---------------- SUMMARY ----------------
+    elif "summary" in query:
+        return df.describe()
 
-    # ---------------- ANSWER ----------------
-    if user_q:
-        st.markdown("### 🤖 AI Answer")
-        st.info(answer_query(user_q, df))
+    else:
+        return "Try asking about mean, max, correlation, trends, categories, or prediction."
         
