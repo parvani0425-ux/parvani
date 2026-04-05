@@ -241,14 +241,21 @@ if df is not None:
 
             st.write(f"Top categories in {cat}")
 
-        st.markdown("### 🔍 Final Insight")
+       st.markdown("### 🔍 Final Insight")
 
-        if corr > 0.7:
-            st.success(f"Strong positive relationship between {x} and {y}")
-        elif corr < -0.7:
-            st.warning(f"Strong negative relationship")
-        else:
-            st.info("Moderate/weak relationship")
+# FIX: define correlation
+try:
+    corr = df[x].corr(df[y])
+
+    if corr > 0.7:
+        st.success(f"Strong positive relationship between {x} and {y}")
+    elif corr < -0.7:
+        st.warning(f"Strong negative relationship between {x} and {y}")
+    else:
+        st.info("Moderate/weak relationship")
+
+except:
+    st.info("Not enough data for correlation analysis")
 
  # ---------------- ASK ----------------
         st.subheader("💬 Ask Your Data")
@@ -275,3 +282,86 @@ if df is not None:
             elif option == "Variance":
                 st.write(df.var(numeric_only=True))
 
+# ================= AI INSIGHTS (NEW) =================
+
+if df is not None:
+
+    st.markdown("---")
+    st.subheader("🤖 Smart AI Insights")
+
+    num_cols = df.select_dtypes(include=np.number).columns
+    cat_cols = df.select_dtypes(include="object").columns
+
+    # -------- SMART INSIGHTS --------
+    st.markdown("### 📊 AI Insights")
+
+    st.success(f"✔ Dataset has {df.shape[0]} rows & {df.shape[1]} columns")
+
+    if len(cat_cols) > 0:
+        st.success(f"✔ Most frequent {cat_cols[0]} → {df[cat_cols[0]].mode()[0]}")
+
+    if len(num_cols) >= 2:
+        corr_val = df[num_cols[0]].corr(df[num_cols[1]])
+        st.success(f"✔ Correlation between {num_cols[0]} & {num_cols[1]} → {round(corr_val,2)}")
+
+    # -------- RECOMMEND QUESTIONS --------
+    st.markdown("### 💡 Recommended Questions")
+
+    recommendations = []
+
+    if len(num_cols) > 0:
+        recommendations.append(f"What is the trend of {num_cols[0]}?")
+        recommendations.append(f"What are outliers in {num_cols[0]}?")
+
+    if len(cat_cols) > 0:
+        recommendations.append(f"What are top categories in {cat_cols[0]}?")
+        recommendations.append(f"How does {cat_cols[0]} affect values?")
+
+    if "selected_q" not in st.session_state:
+        st.session_state.selected_q = ""
+
+    for i, q in enumerate(recommendations):
+        if st.button(q, key=f"ai_q_{i}"):
+            st.session_state.selected_q = q
+
+    # -------- AI Q&A --------
+    st.markdown("### 💬 Ask AI About Your Data")
+
+    user_q = st.text_input("Ask anything", value=st.session_state.selected_q)
+
+    def answer_ai(q):
+        q = q.lower()
+
+        try:
+            if "trend" in q:
+                return "Trend visible in line chart above."
+
+            elif "outlier" in q:
+                col = num_cols[0]
+                q1 = df[col].quantile(0.25)
+                q3 = df[col].quantile(0.75)
+                iqr = q3 - q1
+                return df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
+
+            elif "top" in q:
+                return df[cat_cols[0]].value_counts().head(5)
+
+            elif "affect" in q:
+                return df.groupby(cat_cols[0])[num_cols[0]].mean()
+
+            else:
+                return "Ask about trend, outliers, or categories."
+
+        except Exception as e:
+            return f"Error: {e}"
+
+    if user_q:
+        st.markdown("### 🤖 AI Answer")
+
+        result = answer_ai(user_q)
+
+        if isinstance(result, str):
+            st.info(result)
+        else:
+            st.dataframe(result)
+            
