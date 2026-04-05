@@ -278,15 +278,14 @@ else:
             elif option == "Variance":
                 st.write(df.var(numeric_only=True))
 
+# ================= AI INSIGHTS + ASK SECTION (CLEAN FINAL) =================
 
-# ================= AI INSIGHTS + ASK SECTION (FINAL FIXED) =================
-
-if 'df' in locals() and df is not None:
+if df is not None:
 
     st.markdown("---")
     st.subheader("🤖 AI Insights & Smart Recommendations")
 
-    # ---------------- BASIC INSIGHTS ----------------
+    # ---------------- INSIGHTS ----------------
     insights = []
     recommendations = []
 
@@ -296,40 +295,32 @@ if 'df' in locals() and df is not None:
     num_cols = df.select_dtypes(include=np.number).columns
     cat_cols = df.select_dtypes(include="object").columns
 
-    # Correlation insight
+    # Correlation
     if len(num_cols) >= 2:
-        corr_matrix = df[num_cols].corr()
-        corr_value = corr_matrix.iloc[0, 1]
+        corr = df[num_cols[0]].corr(df[num_cols[1]])
+        insights.append(f"Correlation between {num_cols[0]} and {num_cols[1]} is {round(corr,2)}.")
 
-        insights.append(f"Correlation between {num_cols[0]} and {num_cols[1]} is {round(corr_value,2)}.")
-
-        if abs(corr_value) > 0.7:
-            insights.append("There is a strong relationship between variables.")
-        else:
-            insights.append("The relationship between variables is moderate or weak.")
-
-    # Most frequent category
+    # Category
     if len(cat_cols) > 0:
         top_cat = df[cat_cols[0]].mode()[0]
         insights.append(f"Most frequent category in {cat_cols[0]} is '{top_cat}'.")
 
-    # ---------------- DISPLAY INSIGHTS ----------------
+    # DISPLAY
     st.markdown("### 📊 Key Insights")
     for i in insights:
         st.success(f"✔ {i}")
 
-    # ---------------- RECOMMENDED QUESTIONS ----------------
+    # ---------------- RECOMMENDATIONS ----------------
     if len(num_cols) > 0:
         recommendations = [
             f"What is the trend of {num_cols[0]}?",
-            f"Which factors influence {num_cols[-1]} the most?",
-            f"Can {num_cols[0]} predict {num_cols[-1]}?",
-            f"What are the outliers in {num_cols[0]}?"
+            f"Which factors influence {num_cols[-1]}?",
+            f"What are outliers in {num_cols[0]}?"
         ]
 
     if len(cat_cols) > 0:
         recommendations.append(f"What are top categories in {cat_cols[0]}?")
-        recommendations.append(f"How does {cat_cols[0]} affect numeric values?")
+        recommendations.append(f"How does {cat_cols[0]} affect values?")
 
     st.markdown("### 💡 You May Also Want To Know")
 
@@ -337,10 +328,10 @@ if 'df' in locals() and df is not None:
         st.session_state.selected_q = ""
 
     for i, q in enumerate(recommendations):
-        if st.button(f"👉 {q}", key=f"rec_{i}"):
+        if st.button(q, key=f"rec_{i}"):
             st.session_state.selected_q = q
 
-    # ---------------- ASK SECTION ----------------
+    # ---------------- ASK ----------------
     st.markdown("### 💬 Ask Anything About Your Data")
 
     user_q = st.text_input(
@@ -349,63 +340,46 @@ if 'df' in locals() and df is not None:
     )
 
     # ---------------- ANSWER FUNCTION ----------------
-    def answer_query(query, df):
+    def answer_query(query):
         query = query.lower()
 
-        num_cols = df.select_dtypes(include=np.number).columns
-        cat_cols = df.select_dtypes(include="object").columns
-
         try:
-            # TREND
             if "trend" in query:
-                return f"{num_cols[0]} shows variation across dataset (see line chart)."
+                return "Trend visible in line chart above."
 
-            # INFLUENCE
-            elif "influence" in query or "impact" in query:
+            elif "influence" in query:
                 if len(num_cols) >= 2:
                     target = num_cols[-1]
-                    corr = df.corr(numeric_only=True)[target].sort_values(ascending=False)
-                    return corr
+                    return df.corr(numeric_only=True)[target].sort_values(ascending=False)
 
-            # PREDICTION
-            elif "predict" in query:
-                if len(num_cols) >= 2:
-                    x = num_cols[0]
-                    y = num_cols[-1]
-                    corr = df[x].corr(df[y])
-                    return f"{x} predicts {y} with correlation {round(corr,2)}"
-
-            # OUTLIERS
             elif "outlier" in query:
                 col = num_cols[0]
                 q1 = df[col].quantile(0.25)
                 q3 = df[col].quantile(0.75)
                 iqr = q3 - q1
-                outliers = df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
-                return outliers
+                return df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
 
-            # CATEGORY IMPACT
-            elif "affect" in query or "category" in query:
-                if len(cat_cols) > 0 and len(num_cols) > 0:
-                    cat = cat_cols[0]
-                    num = num_cols[0]
-                    return df.groupby(cat)[num].mean().sort_values(ascending=False)
-
-            # TOP CATEGORY
             elif "top" in query:
-                if len(cat_cols) > 0:
-                    return df[cat_cols[0]].value_counts().head(5)
+                return df[cat_cols[0]].value_counts().head(5)
+
+            elif "affect" in query:
+                return df.groupby(cat_cols[0])[num_cols[0]].mean()
 
             else:
-                return "Try asking about trend, influence, prediction, outliers, or categories."
+                return "Try asking about trend, influence, outliers, or categories."
 
         except Exception as e:
-            return f"Error processing query: {e}"
+            return f"Error: {e}"
 
-    # ---------------- SHOW ANSWER ----------------
-   # FIXED: handle both typed + clicked questions
-final_query = user_q if user_q else st.session_state.selected_q
+    # ---------------- FINAL FIX (IMPORTANT) ----------------
+    final_query = user_q if user_q else st.session_state.selected_q
 
-if final_query:
-    st.markdown("### 🤖 AI Answer
-                
+    if final_query:
+        st.markdown("### 🤖 AI Answer")
+
+        result = answer_query(final_query)
+
+        if isinstance(result, str):
+            st.info(result)
+        else:
+            st.dataframe(result)
