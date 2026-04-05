@@ -298,4 +298,40 @@ if df is not None:
 
     except Exception as e:
         st.error(f"AI Insight Error: {e}")
-        
+
+# ================= RECOMMENDED QUESTIONS =================
+if df is not None:
+
+    st.markdown("---")
+    st.subheader("💡 Recommended Questions (Dynamic)")
+
+    num_cols = df.select_dtypes(include=np.number).columns
+    cat_cols = df.select_dtypes(include="object").columns
+
+    questions = []
+
+    # Numeric-based questions
+    if len(num_cols) > 0:
+        questions.append(f"What is the trend of {num_cols[0]}?")
+        questions.append(f"Are there any outliers in {num_cols[0]}?")
+        questions.append(f"What is the distribution of {num_cols[0]}?")
+
+    # Category-based questions
+    if len(cat_cols) > 0:
+        questions.append(f"What are top categories in {cat_cols[0]}?")
+        questions.append(f"How does {cat_cols[0]} impact numeric values?")
+
+    # Correlation-based
+    if len(num_cols) >= 2:
+        questions.append(f"Is there a relationship between {num_cols[0]} and {num_cols[1]}?")
+        questions.append(f"Which factor influences {num_cols[1]} the most?")
+
+    # Session state (IMPORTANT - prevents error)
+    if "selected_q" not in st.session_state:
+        st.session_state.selected_q = ""
+
+    # Display buttons
+    for i, q in enumerate(questions):
+        if st.button(f"👉 {q}", key=f"q_{i}"):
+            st.session_state.selected_q = q
+
