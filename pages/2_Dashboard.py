@@ -177,160 +177,22 @@ if df is not None:
         Shows distribution & spread of values.
         """)
 
-# ---------------- REGRESSION ----------------
-st.subheader("📈 Regression Analysis")
+ # ---------------- REGRESSION ----------------
+        st.subheader("📈 Regression Analysis")
 
-X = df[[x]]
-Y = df[y]
+        from sklearn.linear_model import LinearRegression
+        from sklearn.model_selection import train_test_split
+        from sklearn.metrics import r2_score
 
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
+        X = df[[x]]
+        Y = df[y]
 
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
 
-model = LinearRegression()
-model.fit(X_train, Y_train)
+        model = LinearRegression()
+        model.fit(X_train, Y_train)
 
-preds = model.predict(X_test)
-score = r2_score(Y_test, preds)
+        preds = model.predict(X_test)
+        score = r2_score(Y_test, preds)
 
-st.success(f"Accuracy (R²): {round(score,2)}")
-
-fig_reg = px.scatter(df, x=x, y=y)
-fig_reg.add_traces(px.line(x=X_test[x], y=preds).data)
-st.plotly_chart(fig_reg)
-
- # ---------------- STORYTELLING DASHBOARD ----------------
-        st.subheader("📖 Storytelling Dashboard")
-
-        st.markdown("### 🧠 Data Story Overview")
-
-        st.write(f"""
-        This dataset contains **{df.shape[0]} rows** and **{df.shape[1]} columns**.  
-        Relationship analyzed between **{x} and {y}**.
-        """)
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            fig_story1 = px.scatter(df, x=x, y=y, text=df[y].round(2))
-            fig_story1.update_traces(textposition="top center")
-            st.plotly_chart(fig_story1, key="story_scatter")
-
-            st.write(f"{x} vs {y} relationship → pattern shows correlation")
-
-        with col2:
-            fig_story2 = px.line(df, y=y, markers=True)
-            st.plotly_chart(fig_story2, key="story_line")
-
-            st.write(f"{y} trend shows growth/decline behavior")
-
-        fig_story3 = px.histogram(df, x=x, text_auto=True)
-        st.plotly_chart(fig_story3, key="story_hist")
-
-        st.write(f"{x} distribution shows spread of values")
-
-        if len(cat_cols) > 0:
-            fig_story4 = px.bar(x=top.index, y=top.values, text=top.values)
-            fig_story4.update_traces(textposition="outside")
-            st.plotly_chart(fig_story4, key="story_bar")
-
-            st.write(f"Top categories in {cat}")
-
-# ---------------- FINAL INSIGHT ----------------
-st.markdown("### 🔍 Final Insight")
-
-try:
-    corr = df[x].corr(df[y])
-
-    if corr > 0.7:
-        st.success(f"Strong positive relationship between {x} and {y}")
-    elif corr < -0.7:
-        st.warning("Strong negative relationship")
-    else:
-        st.info("Moderate/weak relationship")
-
-except:
-    st.info("Not enough data")
-
-# ================= AI SECTION =================
-st.markdown("---")
-st.subheader("🤖 Smart AI Insights")
-
-num_cols = df.select_dtypes(include=np.number).columns
-cat_cols = df.select_dtypes(include="object").columns
-
-# ---------- AI INSIGHTS ----------
-st.markdown("### 📊 AI Insights")
-
-st.success(f"✔ Dataset has {df.shape[0]} rows & {df.shape[1]} columns")
-
-if len(cat_cols) > 0:
-    st.success(f"✔ Most frequent {cat_cols[0]} → {df[cat_cols[0]].mode()[0]}")
-
-if len(num_cols) >= 2:
-    corr_val = df[num_cols[0]].corr(df[num_cols[1]])
-    st.success(f"✔ Correlation → {round(corr_val,2)}")
-
-# ---------- RECOMMENDED QUESTIONS ----------
-st.markdown("### 💡 Recommended Questions")
-
-recommendations = []
-
-if len(num_cols) > 0:
-    recommendations.append(f"What is the trend of {num_cols[0]}?")
-    recommendations.append(f"What are outliers in {num_cols[0]}?")
-
-if len(cat_cols) > 0:
-    recommendations.append(f"What are top categories in {cat_cols[0]}?")
-    recommendations.append(f"How does {cat_cols[0]} affect values?")
-
-if "selected_q" not in st.session_state:
-    st.session_state.selected_q = ""
-
-for i, q in enumerate(recommendations):
-    if st.button(q, key=f"q_{i}"):
-        st.session_state.selected_q = q
-
-# ---------- AI ASK ----------
-st.markdown("### 💬 Ask AI")
-
-user_q = st.text_input("Ask anything", value=st.session_state.selected_q)
-
-def answer_ai(q):
-    q = q.lower()
-
-    try:
-        if "trend" in q:
-            return "Check the line chart above for trend."
-
-        elif "outlier" in q:
-            col = num_cols[0]
-            q1 = df[col].quantile(0.25)
-            q3 = df[col].quantile(0.75)
-            iqr = q3 - q1
-            return df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
-
-        elif "top" in q:
-            return df[cat_cols[0]].value_counts().head(5)
-
-        elif "affect" in q:
-            return df.groupby(cat_cols[0])[num_cols[0]].mean()
-
-        else:
-            return "Try trend, outliers, or categories."
-
-    except Exception as e:
-        return f"Error: {e}"
-
-if user_q:
-    st.markdown("### 🤖 AI Answer")
-
-    result = answer_ai(user_q)
-
-    if isinstance(result, str):
-        st.info(result)
-    else:
-        st.dataframe(result)
-        
+        st.success(f"Accuracy (R²): {round(score,2)}")
