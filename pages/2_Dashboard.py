@@ -342,53 +342,167 @@ if df is not None:
 
     user_q = st.text_input(
         "Ask your question",
-        value=st.session_state.selected_q
+        value=st.session_state.get("selected_q", "")
     )
 
     def answer_question(q):
         q = q.lower()
 
         try:
-            # TREND
+            # ---------------- TREND ----------------
             if "trend" in q:
-                return "Check the trend chart above for visual insight."
+                col = num_cols[0]
+                trend = "increasing" if df[col].iloc[-1] > df[col].iloc[0] else "decreasing"
 
-            # OUTLIERS
+                return f"""
+📊 Trend Analysis of {col}
+
+The variable shows a {trend} pattern across the dataset.
+
+This indicates how values are changing over time or observations.
+
+Conclusion:
+This helps identify growth or decline patterns and supports forecasting.
+"""
+
+            # ---------------- OUTLIERS ----------------
             elif "outlier" in q:
                 col = num_cols[0]
+
                 q1 = df[col].quantile(0.25)
                 q3 = df[col].quantile(0.75)
                 iqr = q3 - q1
+
                 outliers = df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
-                return outliers
 
-            # DISTRIBUTION
+                return f"""
+Outlier Analysis for {col}
+
+Total outliers detected: {len(outliers)}
+
+Outliers are extreme values that differ significantly from others.
+
+They may indicate:
+- Data errors
+- Rare events
+- Exceptional cases
+
+Recommendation:
+Investigate before making decisions.
+
+Sample:
+{outliers.head()}
+"""
+
+            # ---------------- DISTRIBUTION ----------------
             elif "distribution" in q:
-                return f"{num_cols[0]} distribution shown in histogram above."
+                col = num_cols[0]
 
-            # TOP CATEGORIES
+                return f"""
+Distribution Analysis of {col}
+
+The histogram shows how values are spread.
+
+Insights:
+- Narrow spread → stable data
+- Wide spread → high variability
+
+Use this to understand consistency and risk.
+"""
+
+            # ---------------- TOP CATEGORIES ----------------
             elif "top" in q:
-                return df[cat_cols[0]].value_counts().head(5)
+                cat = cat_cols[0]
+                top = df[cat].value_counts().head(5)
 
-            # IMPACT
+                return f"""
+Top Categories in {cat}
+
+{top}
+
+These categories appear most frequently.
+
+Use case:
+- Market trends
+- Customer behavior
+- Product popularity
+"""
+
+            # ---------------- IMPACT ----------------
             elif "impact" in q:
-                return df.groupby(cat_cols[0])[num_cols[0]].mean()
+                cat = cat_cols[0]
+                num = num_cols[0]
 
-            # RELATIONSHIP
+                impact = df.groupby(cat)[num].mean().sort_values(ascending=False)
+
+                return f"""
+Impact of {cat} on {num}
+
+{impact.head()}
+
+Higher values indicate stronger influence.
+
+Helps identify high-performing categories.
+"""
+
+            # ---------------- RELATIONSHIP ----------------
             elif "relationship" in q:
-                corr = df[num_cols[0]].corr(df[num_cols[1]])
-                return f"Correlation = {round(corr,2)}"
+                x = num_cols[0]
+                y = num_cols[1]
 
-            # INFLUENCE
+                corr = df[x].corr(df[y])
+
+                strength = (
+                    "strong" if abs(corr) > 0.7 else
+                    "moderate" if abs(corr) > 0.4 else
+                    "weak"
+                )
+
+                return f"""
+Relationship between {x} and {y}
+
+Correlation: {round(corr,2)}
+
+There is a {strength} relationship.
+
+Positive → both increase together  
+Negative → opposite movement  
+
+Useful for prediction and modeling.
+"""
+
+            # ---------------- INFLUENCE ----------------
             elif "influence" in q:
-                corr = df.corr(numeric_only=True)[num_cols[1]].sort_values(ascending=False)
-                return corr
+                target = num_cols[1]
 
+                corr = df.corr(numeric_only=True)[target].sort_values(ascending=False)
+
+                return f"""
+Feature Influence on {target}
+
+{corr}
+
+Higher correlation = stronger impact.
+
+Useful for identifying key drivers in data.
+"""
+
+            # ---------------- DEFAULT ----------------
             else:
-                return "Try clicking a recommended question 👆"
+                return """
+Try asking:
+
+• Trend  
+• Outliers  
+• Top categories  
+• Relationship  
+• Impact  
+
+Or click recommended questions above 👆
+"""
 
         except Exception as e:
-            return str(e)
+            return f"Error: {e}"
 
     # SHOW ANSWER
     if user_q:
@@ -400,5 +514,4 @@ if df is not None:
             st.info(result)
         else:
             st.dataframe(result)
-
-
+            
