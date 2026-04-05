@@ -600,68 +600,67 @@ if df is not None:
     st.markdown("---")
     st.subheader("📊 AI Numerical Analyzer")
 
-    st.write("Ask for any column (example: 'price', 'sales', 'quantity')")
+    st.write("Select a column to get full statistical analysis")
 
-    col_query = st.text_input("Enter column name for full statistical analysis")
+    # NEW DROPDOWN (FIXED)
+    col_query = st.selectbox(
+        "Select column",
+        df.columns
+    )
 
     if col_query:
 
-        # Find matching column
-        matched_cols = [col for col in df.columns if col_query.lower() in col.lower()]
+        col = col_query
 
-        if len(matched_cols) > 0:
-            col = matched_cols[0]
+        if pd.api.types.is_numeric_dtype(df[col]):
 
-            if pd.api.types.is_numeric_dtype(df[col]):
+            data = df[col]
 
-                mean_val = df[col].mean()
-                median_val = df[col].median()
-                mode_val = df[col].mode()[0]
-                std_val = df[col].std()
-                min_val = df[col].min()
-                max_val = df[col].max()
+            mean_val = data.mean()
+            median_val = data.median()
+            mode_val = data.mode()[0]
+            std_val = data.std()
+            var_val = data.var()
+            min_val = data.min()
+            max_val = data.max()
+            count_val = data.count()
 
-                st.success(f"📊 Full Analysis of '{col}'")
+            st.success(f"📊 Analysis of '{col}'")
 
-                st.markdown(f"""
+            st.markdown(f"""
 ### 🔢 Statistical Summary
 
-- **Mean (Average):** {round(mean_val,2)}  
+- **Count:** {count_val}  
+- **Mean:** {round(mean_val,2)}  
 - **Median:** {round(median_val,2)}  
 - **Mode:** {mode_val}  
 - **Standard Deviation:** {round(std_val,2)}  
-- **Minimum Value:** {min_val}  
-- **Maximum Value:** {max_val}  
+- **Variance:** {round(var_val,2)}  
+- **Minimum:** {min_val}  
+- **Maximum:** {max_val}  
 
 ---
 
 ### 🧠 Interpretation
 
-👉 **Mean vs Median**
-- If mean ≈ median → data is balanced  
-- If different → data is skewed  
+👉 Mean vs Median:
+- Similar → balanced data  
+- Different → skewed data  
 
-👉 **Standard Deviation**
-- Low → stable data  
-- High → high variation  
+👉 Standard Deviation:
+- Low → stable  
+- High → variable  
 
-👉 **Min/Max**
-- Shows data range and extremes  
+👉 Range:
+- Shows spread of values  
 
 ---
 
 ### 📌 Insight
 
-This helps you understand:
-- Data distribution  
-- Consistency  
-- Risk / variability  
-- Typical vs extreme values  
+This helps understand distribution, variability, and decision-making patterns.
 """)
 
-            else:
-                st.warning("❌ Selected column is not numerical")
-
         else:
-            st.error("❌ Column not found. Try similar name.")
+            st.warning("❌ Selected column is not numerical")
             
