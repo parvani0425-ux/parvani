@@ -208,121 +208,141 @@ if df is not None:
         """)
 
 # ================= AI CHART DEVELOPER =================
-st.markdown("---")
-st.subheader("📊 AI Chart Developer")
+if df is not None:
 
-st.write("Create your own chart with AI explanation")
+    st.markdown("---")
+    st.subheader("📊 AI Chart Developer")
 
-# Select chart type
-chart_type = st.selectbox(
-    "Select Chart Type",
-    ["Bar Chart", "Scatter Plot", "Line Chart", "Pie Chart"]
-)
+    st.write("Create your own chart with AI explanation")
 
-# Select columns
-all_cols = df.columns.tolist()
+    # SAFE NOW (df exists)
+    all_cols = df.columns.tolist()
 
-x_col = st.selectbox("Select X-axis", all_cols)
-y_col = st.selectbox("Select Y-axis (numeric)", df.select_dtypes(include=np.number).columns)
+    chart_type = st.selectbox(
+        "Select Chart Type",
+        ["Bar Chart", "Scatter Plot", "Line Chart", "Pie Chart"]
+    )
 
-# Top filter
-top_n = st.selectbox("Select Top Values", [5, 7, 10, 20])
+    x_col = st.selectbox("Select X-axis", all_cols)
 
-if st.button("Generate Chart"):
+    y_col = st.selectbox(
+        "Select Y-axis (numeric)",
+        df.select_dtypes(include=np.number).columns
+    )
 
-    try:
-        temp_df = df.copy()
+    top_n = st.selectbox("Select Top Values", [5, 7, 10, 20])
 
-        # Apply top filter for categorical
-        if temp_df[x_col].dtype == "object":
-            top_vals = temp_df[x_col].value_counts().nlargest(top_n).index
-            temp_df = temp_df[temp_df[x_col].isin(top_vals)]
+    if st.button("Generate Chart"):
 
-        # Create chart
-        if chart_type == "Bar Chart":
-            fig = px.bar(temp_df, x=x_col, y=y_col, text=y_col)
+        try:
+            temp_df = df.copy()
 
-        elif chart_type == "Scatter Plot":
-            fig = px.scatter(temp_df, x=x_col, y=y_col)
+            if temp_df[x_col].dtype == "object":
+                top_vals = temp_df[x_col].value_counts().nlargest(top_n).index
+                temp_df = temp_df[temp_df[x_col].isin(top_vals)]
 
-        elif chart_type == "Line Chart":
-            fig = px.line(temp_df, x=x_col, y=y_col, markers=True)
+            import plotly.express as px
 
-        elif chart_type == "Pie Chart":
-            fig = px.pie(temp_df, names=x_col, values=y_col)
+            if chart_type == "Bar Chart":
+                fig = px.bar(temp_df, x=x_col, y=y_col, text=y_col)
 
-        st.plotly_chart(fig)
+            elif chart_type == "Scatter Plot":
+                fig = px.scatter(temp_df, x=x_col, y=y_col)
 
-        # ---------------- AI EXPLANATION ----------------
-        st.markdown("### 🤖 Chart Explanation")
+            elif chart_type == "Line Chart":
+                fig = px.line(temp_df, x=x_col, y=y_col, markers=True)
 
-        explanation = f"""
-📊 **Chart Type:** {chart_type}
+            elif chart_type == "Pie Chart":
+                fig = px.pie(temp_df, names=x_col, values=y_col)
 
-🔹 X-axis: {x_col}  
-🔹 Y-axis: {y_col}  
+            st.plotly_chart(fig)
 
-### 🧠 What this chart shows:
-This visualization helps understand how **{y_col} varies across {x_col}**.
+            # AI Explanation
+            st.markdown("### 🤖 Chart Explanation")
 
-### 📌 Why this chart:
-- Bar → compares categories  
-- Line → shows trend over time  
-- Scatter → shows relationship  
-- Pie → shows proportion  
+            st.info(f"""
+📊 Chart Type: {chart_type}
 
-### 🔍 Insight:
-This helps identify:
-- Top performing categories  
-- Patterns and trends  
-- Variations in data  
+This chart shows how **{y_col} changes across {x_col}**.
 
-### 🎯 Conclusion:
-Use this chart to support decision-making and data storytelling.
-"""
+• Bar → compare categories  
+• Line → trend over time  
+• Scatter → relationship  
+• Pie → proportions  
 
-        st.info(explanation)
+👉 Helps identify patterns, trends, and top performers.
+""")
 
-    except Exception as e:
-        st.error(f"Error generating chart: {e}")
+        except Exception as e:
+            st.error(f"Error: {e}")
 
-  # ---------------- STORYTELLING DASHBOARD ----------------
-        st.subheader("📖 Storytelling Dashboard")
+ # ---------------- STORYTELLING DASHBOARD ----------------
+if df is not None:
 
-        st.markdown("### 🧠 Data Story Overview")
+    st.markdown("---")
+    st.subheader("📖 Storytelling Dashboard")
 
-        st.write(f"""
-        This dataset contains **{df.shape[0]} rows** and **{df.shape[1]} columns**.  
-        Relationship analyzed between **{x} and {y}**.
-        """)
+    st.markdown("### 🧠 Data Story Overview")
 
-        col1, col2 = st.columns(2)
+    st.write(f"""
+    This dataset contains **{df.shape[0]} rows** and **{df.shape[1]} columns**.  
+    Relationship analyzed between **{x} and {y}**.
+    """)
 
-        with col1:
-            fig_story1 = px.scatter(df, x=x, y=y, text=df[y].round(2))
-            fig_story1.update_traces(textposition="top center")
-            st.plotly_chart(fig_story1, key="story_scatter")
+    # ---------------- MAIN VISUALS ----------------
+    col1, col2 = st.columns(2)
 
-            st.write(f"{x} vs {y} relationship → pattern shows correlation")
+    with col1:
+        fig_story1 = px.scatter(df, x=x, y=y, text=df[y].round(2))
+        fig_story1.update_traces(textposition="top center")
+        st.plotly_chart(fig_story1, use_container_width=True)
 
-        with col2:
-            fig_story2 = px.line(df, y=y, markers=True)
-            st.plotly_chart(fig_story2, key="story_line")
+        st.write(f"🔍 {x} vs {y} → shows relationship and correlation pattern.")
 
-            st.write(f"{y} trend shows growth/decline behavior")
+    with col2:
+        fig_story2 = px.line(df, y=y, markers=True)
+        st.plotly_chart(fig_story2, use_container_width=True)
 
-        fig_story3 = px.histogram(df, x=x, text_auto=True)
-        st.plotly_chart(fig_story3, key="story_hist")
+        st.write(f"📈 {y} trend → shows growth or decline behavior over dataset.")
 
-        st.write(f"{x} distribution shows spread of values")
+    # ---------------- DISTRIBUTION ----------------
+    fig_story3 = px.histogram(df, x=x, text_auto=True)
+    st.plotly_chart(fig_story3, use_container_width=True)
 
-        if len(cat_cols) > 0:
-            fig_story4 = px.bar(x=top.index, y=top.values, text=top.values)
-            fig_story4.update_traces(textposition="outside")
-            st.plotly_chart(fig_story4, key="story_bar")
+    st.write(f"📊 Distribution of {x} → shows spread and frequency of values.")
 
-            st.write(f"Top categories in {cat}")
+    # ---------------- CATEGORY ANALYSIS ----------------
+    if len(cat_cols) > 0:
+        cat = cat_cols[0]
+        top = df[cat].value_counts().head(5)
 
+        fig_story4 = px.bar(x=top.index, y=top.values, text=top.values)
+        fig_story4.update_traces(textposition="outside")
+
+        st.plotly_chart(fig_story4, use_container_width=True)
+
+        st.write(f"🏆 Top categories in {cat} → highlights most frequent values.")
+
+    # ---------------- AI GENERATED CHART ----------------
+    if "generated_chart" in st.session_state:
+
+        st.markdown("### 🤖 AI Generated Custom Chart")
+
+        st.plotly_chart(
+            st.session_state.generated_chart,
+            use_container_width=True
+        )
+
+        st.write("""
+This chart was created using the AI Chart Developer.
+
+📌 It allows custom analysis beyond default visuals  
+📌 Helps explore patterns based on user interest  
+📌 Makes the dashboard interactive and dynamic  
+
+👉 This is useful for deeper insights and better decision-making.
+""")
+        
 # ================= SMART AI INSIGHTS =================
 if df is not None:
 
