@@ -244,57 +244,58 @@ if df is not None:
 
             st.write(f"Top categories in {cat}")
 
- # ================= SMART AI INSIGHTS =================
-st.markdown("---")
-st.subheader("🤖 Smart AI Insights (Auto Generated)")
+# ================= SMART AI INSIGHTS =================
+if df is not None:
 
-try:
-    insights = []
+    st.markdown("---")
+    st.subheader("🤖 Smart AI Insights (Auto Generated)")
 
-    # Dataset overview
-    insights.append(f"Dataset contains {df.shape[0]} rows and {df.shape[1]} columns.")
+    try:
+        insights = []
 
-    # Numeric insights
-    num_cols = df.select_dtypes(include=np.number).columns
+        # Dataset overview
+        insights.append(f"Dataset contains {df.shape[0]} rows and {df.shape[1]} columns.")
 
-    if len(num_cols) > 0:
-        col = num_cols[0]
+        # Numeric insights
+        num_cols = df.select_dtypes(include=np.number).columns
 
-        insights.append(f"Average value of {col} is {round(df[col].mean(),2)}.")
-        insights.append(f"Maximum value of {col} is {df[col].max()} indicating peak performance.")
+        if len(num_cols) > 0:
+            col = num_cols[0]
 
-        # Outliers
-        q1 = df[col].quantile(0.25)
-        q3 = df[col].quantile(0.75)
-        iqr = q3 - q1
-        outliers = df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
+            insights.append(f"Average value of {col} is {round(df[col].mean(),2)}.")
+            insights.append(f"Maximum value of {col} is {df[col].max()} indicating peak performance.")
 
-        insights.append(f"{len(outliers)} potential outliers detected in {col}.")
+            # Outliers
+            q1 = df[col].quantile(0.25)
+            q3 = df[col].quantile(0.75)
+            iqr = q3 - q1
+            outliers = df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
 
-    # Category insights
-    cat_cols = df.select_dtypes(include="object").columns
+            insights.append(f"{len(outliers)} potential outliers detected in {col}.")
 
-    if len(cat_cols) > 0:
-        cat = cat_cols[0]
-        top_cat = df[cat].value_counts().idxmax()
-        insights.append(f"Most frequent category in {cat} is '{top_cat}'.")
+        # Category insights
+        cat_cols = df.select_dtypes(include="object").columns
 
-    # Correlation insights
-    if len(num_cols) >= 2:
-        corr = df[num_cols[0]].corr(df[num_cols[1]])
+        if len(cat_cols) > 0:
+            cat = cat_cols[0]
+            top_cat = df[cat].value_counts().idxmax()
+            insights.append(f"Most frequent category in {cat} is '{top_cat}'.")
 
-        if corr > 0.7:
-            insights.append("Strong positive relationship between key variables.")
-        elif corr < -0.7:
-            insights.append("Strong negative relationship between key variables.")
-        else:
-            insights.append("Moderate relationship observed between variables.")
+        # Correlation insights
+        if len(num_cols) >= 2:
+            corr = df[num_cols[0]].corr(df[num_cols[1]])
 
-    # SHOW INSIGHTS
-    for i in insights:
-        st.success(f"✔ {i}")
+            if corr > 0.7:
+                insights.append("Strong positive relationship between key variables.")
+            elif corr < -0.7:
+                insights.append("Strong negative relationship between key variables.")
+            else:
+                insights.append("Moderate relationship observed between variables.")
 
-except Exception as e:
-    st.error(f"AI Insight Error: {e}")
+        # SHOW INSIGHTS
+        for i in insights:
+            st.success(f"✔ {i}")
 
-
+    except Exception as e:
+        st.error(f"AI Insight Error: {e}")
+        
