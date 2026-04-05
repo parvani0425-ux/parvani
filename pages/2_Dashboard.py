@@ -207,6 +207,85 @@ if df is not None:
         R² score shows model accuracy.
         """)
 
+# ================= AI CHART DEVELOPER =================
+st.markdown("---")
+st.subheader("📊 AI Chart Developer")
+
+st.write("Create your own chart with AI explanation")
+
+# Select chart type
+chart_type = st.selectbox(
+    "Select Chart Type",
+    ["Bar Chart", "Scatter Plot", "Line Chart", "Pie Chart"]
+)
+
+# Select columns
+all_cols = df.columns.tolist()
+
+x_col = st.selectbox("Select X-axis", all_cols)
+y_col = st.selectbox("Select Y-axis (numeric)", df.select_dtypes(include=np.number).columns)
+
+# Top filter
+top_n = st.selectbox("Select Top Values", [5, 7, 10, 20])
+
+if st.button("Generate Chart"):
+
+    try:
+        temp_df = df.copy()
+
+        # Apply top filter for categorical
+        if temp_df[x_col].dtype == "object":
+            top_vals = temp_df[x_col].value_counts().nlargest(top_n).index
+            temp_df = temp_df[temp_df[x_col].isin(top_vals)]
+
+        # Create chart
+        if chart_type == "Bar Chart":
+            fig = px.bar(temp_df, x=x_col, y=y_col, text=y_col)
+
+        elif chart_type == "Scatter Plot":
+            fig = px.scatter(temp_df, x=x_col, y=y_col)
+
+        elif chart_type == "Line Chart":
+            fig = px.line(temp_df, x=x_col, y=y_col, markers=True)
+
+        elif chart_type == "Pie Chart":
+            fig = px.pie(temp_df, names=x_col, values=y_col)
+
+        st.plotly_chart(fig)
+
+        # ---------------- AI EXPLANATION ----------------
+        st.markdown("### 🤖 Chart Explanation")
+
+        explanation = f"""
+📊 **Chart Type:** {chart_type}
+
+🔹 X-axis: {x_col}  
+🔹 Y-axis: {y_col}  
+
+### 🧠 What this chart shows:
+This visualization helps understand how **{y_col} varies across {x_col}**.
+
+### 📌 Why this chart:
+- Bar → compares categories  
+- Line → shows trend over time  
+- Scatter → shows relationship  
+- Pie → shows proportion  
+
+### 🔍 Insight:
+This helps identify:
+- Top performing categories  
+- Patterns and trends  
+- Variations in data  
+
+### 🎯 Conclusion:
+Use this chart to support decision-making and data storytelling.
+"""
+
+        st.info(explanation)
+
+    except Exception as e:
+        st.error(f"Error generating chart: {e}")
+
   # ---------------- STORYTELLING DASHBOARD ----------------
         st.subheader("📖 Storytelling Dashboard")
 
