@@ -196,3 +196,14 @@ if df is not None:
         score = r2_score(Y_test, preds)
 
         st.success(f"Accuracy (R²): {round(score,2)}")
+
+        fig_reg = px.scatter(df, x=x, y=y)
+        fig_reg.add_traces(px.line(x=X_test[x], y=preds).data)
+        st.plotly_chart(fig_reg, key="reg")
+
+        st.markdown("#### 📌 Explanation")
+        st.write(f"""
+        Regression predicts {y} based on {x}.  
+        R² score shows model accuracy.
+        """)
+
