@@ -348,8 +348,12 @@ if df is not None:
         if st.button(f"👉 {q}", key=f"rec_{i}"):
             st.session_state.selected_q = q
 
-   # ---------------- ASK SECTION ----------------
+ # ---------------- ASK SECTION ----------------
 st.markdown("### 💬 Ask Anything About Your Data")
+
+# FIX (IMPORTANT)
+if "selected_q" not in st.session_state:
+    st.session_state.selected_q = ""
 
 user_q = st.text_input(
     "Ask your own question",
@@ -363,59 +367,42 @@ def answer_query(query, df):
     num_cols = df.select_dtypes(include=np.number).columns
     cat_cols = df.select_dtypes(include="object").columns
 
-    # -------- RECOMMENDED QUESTIONS LOGIC --------
-
-    # TREND
     if "trend" in query:
         if len(num_cols) > 0:
             col = num_cols[0]
-            return f"{col} shows a changing trend over the dataset. Use the line chart above to analyze growth or decline."
+            return f"{col} shows a trend across the dataset (see line chart)."
 
-    # FACTORS INFLUENCE
     elif "influence" in query or "impact" in query:
         if len(num_cols) >= 2:
             target = num_cols[1]
             corr = df.corr(numeric_only=True)[target].sort_values(ascending=False)
-            return f"Top factors influencing {target}:\n\n{corr}"
+            return f"Top influencing factors:\n\n{corr}"
 
-    # PREDICTION
     elif "predict" in query:
         if len(num_cols) >= 2:
             x = num_cols[0]
             y = num_cols[1]
             corr = df[x].corr(df[y])
-            return f"{x} can {'strongly' if abs(corr)>0.7 else 'moderately'} predict {y} (correlation = {round(corr,2)})"
+            return f"{x} predicts {y} with correlation {round(corr,2)}"
 
-    # OUTLIERS
     elif "outlier" in query:
-        if len(num_cols) > 0:
-            col = num_cols[0]
-            q1 = df[col].quantile(0.25)
-            q3 = df[col].quantile(0.75)
-            iqr = q3 - q1
-            outliers = df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
-            return f"Outliers detected in {col}:\n\n{outliers}"
+        col = num_cols[0]
+        q1 = df[col].quantile(0.25)
+        q3 = df[col].quantile(0.75)
+        iqr = q3 - q1
+        return df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
 
-    # CATEGORY IMPACT
     elif "category" in query:
-        if len(cat_cols) > 0 and len(num_cols) > 0:
-            cat = cat_cols[0]
-            num = num_cols[0]
-            result = df.groupby(cat)[num].mean().sort_values(ascending=False)
-            return f"Category impact on {num}:\n\n{result}"
+        cat = cat_cols[0]
+        num = num_cols[0]
+        return df.groupby(cat)[num].mean().sort_values(ascending=False)
 
-    # TOP CATEGORIES
     elif "top" in query:
-        if len(cat_cols) > 0:
-            cat = cat_cols[0]
-            return f"Top categories in {cat}:\n\n{df[cat].value_counts().head(5)}"
-
-    # CORRELATION
-    elif "correlation" in query:
-        return df.corr(numeric_only=True)
+        cat = cat_cols[0]
+        return df[cat].value_counts().head(5)
 
     else:
-        return "Ask about trend, impact, prediction, outliers, categories, etc."
+        return "Ask about trend, impact, prediction, outliers, or categories."
 
 
 # ---------------- SHOW ANSWER ----------------
