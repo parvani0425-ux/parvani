@@ -207,123 +207,102 @@ if df is not None:
         R² score shows model accuracy.
         """)
 
-# ================= AI CHART DEVELOPER =================
+# ================= AI CHART GENERATOR =================
+
 if df is not None:
 
-    st.markdown("---")
     st.subheader("📊 AI Chart Developer")
-
-    st.write("Create your own chart with AI explanation")
-
-    # SAFE NOW (df exists)
-    all_cols = df.columns.tolist()
 
     chart_type = st.selectbox(
         "Select Chart Type",
-        ["Bar Chart", "Scatter Plot", "Line Chart", "Pie Chart"]
+        ["Bar Chart", "Line Chart", "Scatter Plot", "Pie Chart"]
     )
+
+    all_cols = df.columns.tolist()
 
     x_col = st.selectbox("Select X-axis", all_cols)
+    y_col = st.selectbox("Select Y-axis", all_cols)
 
-    y_col = st.selectbox(
-        "Select Y-axis (numeric)",
-        df.select_dtypes(include=np.number).columns
-    )
-
-    top_n = st.selectbox("Select Top Values", [5, 7, 10, 20])
+    top_n = st.selectbox("Top values", [5, 7, 10])
 
     if st.button("Generate Chart"):
 
+        temp_df = df[[x_col, y_col]].dropna().head(top_n)
+
+        # -------- CREATE CHART --------
+        if chart_type == "Bar Chart":
+            fig = px.bar(temp_df, x=x_col, y=y_col)
+
+        elif chart_type == "Line Chart":
+            fig = px.line(temp_df, x=x_col, y=y_col, markers=True)
+
+        elif chart_type == "Scatter Plot":
+            fig = px.scatter(temp_df, x=x_col, y=y_col)
+
+        elif chart_type == "Pie Chart":
+            fig = px.pie(temp_df, names=x_col, values=y_col)
+
+        st.plotly_chart(fig)
+
+        # ================= AI INSIGHT =================
+        st.markdown("### 🤖 AI Chart Insight")
+
         try:
-            temp_df = df.copy()
 
-            if temp_df[x_col].dtype == "object":
-                top_vals = temp_df[x_col].value_counts().nlargest(top_n).index
-                temp_df = temp_df[temp_df[x_col].isin(top_vals)]
+            if chart_type == "Pie Chart":
+                grouped = temp_df.groupby(x_col)[y_col].sum()
+                total = grouped.sum()
 
-            import plotly.express as px
+                top_category = grouped.idxmax()
+                top_value = grouped.max()
+                percentage = (top_value / total) * 100
 
-            if chart_type == "Bar Chart":
-                fig = px.bar(temp_df, x=x_col, y=y_col, text=y_col)
+                st.success(f"""
+🔍 Insight:
 
-            elif chart_type == "Scatter Plot":
-                fig = px.scatter(temp_df, x=x_col, y=y_col)
+• {top_category} contributes highest  
+• Share: {round(percentage,2)}%  
+
+👉 Dominant category
+""")
+
+            elif chart_type == "Bar Chart":
+                grouped = temp_df.groupby(x_col)[y_col].sum().sort_values(ascending=False)
+
+                st.success(f"""
+🔍 Insight:
+
+• Highest: {grouped.index[0]}  
+• Lowest: {grouped.index[-1]}  
+
+👉 Clear variation across categories
+""")
 
             elif chart_type == "Line Chart":
-                fig = px.line(temp_df, x=x_col, y=y_col, markers=True)
+                trend = "increasing" if temp_df[y_col].iloc[-1] > temp_df[y_col].iloc[0] else "decreasing"
 
-            elif chart_type == "Pie Chart":
-                fig = px.pie(temp_df, names=x_col, values=y_col)
+                st.success(f"""
+🔍 Insight:
 
-            st.plotly_chart(fig)
+• Trend is {trend}  
 
-            # AI Explanation
-  st.markdown("### 🤖 AI Chart Insight")
-
-try:
-
-    # -------- PIE CHART ANALYSIS --------
-    if chart_type == "Pie Chart":
-        total = temp_df[y_col].sum()
-        top_category = temp_df.groupby(x_col)[y_col].sum().idxmax()
-        top_value = temp_df.groupby(x_col)[y_col].sum().max()
-
-        percentage = (top_value / total) * 100
-
-        st.success(f"""
-🔍 *Insight:*
-
-* '{top_category}' contributes the highest to {y_col}  
-* It accounts for approx *{round(percentage,2)}%* of total  
-
-👉 This indicates strong dominance of this category in the dataset.
+👉 Shows movement over time
 """)
 
-    # -------- BAR CHART ANALYSIS --------
-    elif chart_type == "Bar Chart":
-        grouped = temp_df.groupby(x_col)[y_col].sum().sort_values(ascending=False)
+            elif chart_type == "Scatter Plot":
+                corr = temp_df[x_col].corr(temp_df[y_col])
 
-        top = grouped.index[0]
-        bottom = grouped.index[-1]
+                st.success(f"""
+🔍 Insight:
 
-        st.success(f"""
-🔍 *Insight:*
+• Correlation: {round(corr,2)}  
 
-* Highest value: *{top}*  
-* Lowest value: *{bottom}*  
-
-👉 Clear variation exists across categories, indicating uneven distribution.
+👉 Shows relationship strength
 """)
 
-    # -------- LINE CHART ANALYSIS --------
-    elif chart_type == "Line Chart":
-        trend = "increasing" if temp_df[y_col].iloc[-1] > temp_df[y_col].iloc[0] else "decreasing"
-
-        st.success(f"""
-🔍 *Insight:*
-
-* The overall trend of {y_col} is *{trend}*  
-
-👉 Indicates change over sequence — useful for forecasting and trend analysis.
-""")
-
-    # -------- SCATTER ANALYSIS --------
-    elif chart_type == "Scatter Plot":
-        corr = temp_df[x_col].corr(temp_df[y_col])
-
-        relation = "strong" if abs(corr) > 0.7 else "moderate" if abs(corr) > 0.4 else "weak"
-
-        st.success(f"""
-🔍 *Insight:*
-
-* Correlation between {x_col} and {y_col}: *{round(corr,2)}*  
-* Relationship strength: *{relation}*  
-
-👉 Shows how strongly variables are related.
-""")
-
-except Exception as e:
-    st.warning(f"Could not generate insight: {e}")
+        except Exception as e:
+            st.warning(f"Insight error: {e}")
+            
     
  # ---------------- STORYTELLING DASHBOARD ----------------
 if df is not None:
