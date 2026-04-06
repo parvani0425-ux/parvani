@@ -1,91 +1,43 @@
 import streamlit as st
 
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="AI Data Tool", layout="wide")
 
-# ---------- STYLE ----------
-st.markdown("""
-<style>
+# -------- SESSION --------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-body {
-    background: linear-gradient(135deg, #0f2027, #2c5364);
-}
+# -------- LANDING PAGE --------
+if not st.session_state.logged_in:
 
-.main {
-    background: transparent;
-}
-
-.hero {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 60px;
-}
-
-.title {
-    font-size: 60px;
-    font-weight: bold;
-    color: white;
-}
-
-.subtitle {
-    font-size: 18px;
-    color: #bbb;
-    margin-top: 10px;
-}
-
-.glow {
-    width: 300px;
-    height: 300px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #00f2ff, #8e2de2);
-    box-shadow: 0 0 100px #00f2ff, 0 0 200px #8e2de2;
-    animation: pulse 3s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
-.button {
-    background: linear-gradient(90deg, #8e2de2, #4a00e0);
-    padding: 10px 25px;
-    border-radius: 10px;
-    color: white;
-    font-weight: bold;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# ---------- HERO ----------
-col1, col2 = st.columns([2,1])
-
-with col1:
-    st.markdown('<div class="title">The Intelligent Data Sphere</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtitle">Where Data Shapes Your Future 🚀</div>', unsafe_allow_html=True)
+    st.title("The Intelligent Data Sphere")
+    st.write("Where Data Shapes Your Future 🚀")
 
     if st.button("Login / Sign Up"):
-        st.switch_page("pages/1_Login.py")
+        st.session_state.logged_in = True
+        st.rerun()
 
-with col2:
-    st.markdown('<div class="glow"></div>', unsafe_allow_html=True)
+# -------- AFTER LOGIN --------
+else:
 
-# ---------- FEATURES ----------
-st.markdown("## ✨ Features")
+    # SIDEBAR
+    with st.sidebar:
+        st.title("📊 Navigation")
 
-c1, c2, c3 = st.columns(3)
+        page = st.radio(
+            "Go to",
+            ["Dashboard", "Profile", "About"]
+        )
 
-with c1:
-    st.info("📊 Data Cleaning\n\nRemove missing values, duplicates instantly")
+        if st.button("Logout"):
+            st.session_state.logged_in = False
+            st.rerun()
 
-with c2:
-    st.info("📈 AI Predictions\n\nRegression + insights automatically")
+    # PAGE ROUTING
+    if page == "Dashboard":
+        st.switch_page("pages/2_Dashboard.py")
 
-with c3:
-    st.info("📉 Smart Charts\n\nAuto visualization suggestions")
+    elif page == "Profile":
+        st.switch_page("pages/3_profile.py")
 
-# ---------- FOOTER ----------
-st.markdown("---")
-st.caption("✨ Built with Streamlit | AI Data Platform 🚀")
+    elif page == "About":
+        st.switch_page("pages/4_About.py")
