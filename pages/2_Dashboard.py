@@ -258,24 +258,73 @@ if df is not None:
             st.plotly_chart(fig)
 
             # AI Explanation
-            st.markdown("### 🤖 Chart Explanation")
+  st.markdown("### 🤖 AI Chart Insight")
 
-            st.info(f"""
-📊 Chart Type: {chart_type}
+try:
 
-This chart shows how **{y_col} changes across {x_col}**.
+    # -------- PIE CHART ANALYSIS --------
+    if chart_type == "Pie Chart":
+        total = temp_df[y_col].sum()
+        top_category = temp_df.groupby(x_col)[y_col].sum().idxmax()
+        top_value = temp_df.groupby(x_col)[y_col].sum().max()
 
-• Bar → compare categories  
-• Line → trend over time  
-• Scatter → relationship  
-• Pie → proportions  
+        percentage = (top_value / total) * 100
 
-👉 Helps identify patterns, trends, and top performers.
+        st.success(f"""
+🔍 *Insight:*
+
+* '{top_category}' contributes the highest to {y_col}  
+* It accounts for approx *{round(percentage,2)}%* of total  
+
+👉 This indicates strong dominance of this category in the dataset.
 """)
 
-        except Exception as e:
-            st.error(f"Error: {e}")
+    # -------- BAR CHART ANALYSIS --------
+    elif chart_type == "Bar Chart":
+        grouped = temp_df.groupby(x_col)[y_col].sum().sort_values(ascending=False)
 
+        top = grouped.index[0]
+        bottom = grouped.index[-1]
+
+        st.success(f"""
+🔍 *Insight:*
+
+* Highest value: *{top}*  
+* Lowest value: *{bottom}*  
+
+👉 Clear variation exists across categories, indicating uneven distribution.
+""")
+
+    # -------- LINE CHART ANALYSIS --------
+    elif chart_type == "Line Chart":
+        trend = "increasing" if temp_df[y_col].iloc[-1] > temp_df[y_col].iloc[0] else "decreasing"
+
+        st.success(f"""
+🔍 *Insight:*
+
+* The overall trend of {y_col} is *{trend}*  
+
+👉 Indicates change over sequence — useful for forecasting and trend analysis.
+""")
+
+    # -------- SCATTER ANALYSIS --------
+    elif chart_type == "Scatter Plot":
+        corr = temp_df[x_col].corr(temp_df[y_col])
+
+        relation = "strong" if abs(corr) > 0.7 else "moderate" if abs(corr) > 0.4 else "weak"
+
+        st.success(f"""
+🔍 *Insight:*
+
+* Correlation between {x_col} and {y_col}: *{round(corr,2)}*  
+* Relationship strength: *{relation}*  
+
+👉 Shows how strongly variables are related.
+""")
+
+except Exception as e:
+    st.warning(f"Could not generate insight: {e}")
+    
  # ---------------- STORYTELLING DASHBOARD ----------------
 if df is not None:
 
