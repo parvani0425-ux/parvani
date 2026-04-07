@@ -175,7 +175,7 @@ The problem focuses on extracting meaningful insights, identifying patterns, and
     st.subheader("✅ Cleaned Data")
     st.dataframe(df.head())
 
-# ---------------- SAVE HISTORY (FULL ANALYSIS) ----------------
+# ---------------- SAVE HISTORY (FULL ANALYSIS + CHARTS) ----------------
 import datetime
 
 if "history" not in st.session_state:
@@ -183,30 +183,38 @@ if "history" not in st.session_state:
 
 if df is not None and file is not None:
 
-    # Safe columns (avoid errors)
     num_cols = df.select_dtypes(include='number').columns
     cat_cols = df.select_dtypes(include='object').columns
 
     entry = {
         "file_name": file.name,
         "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "rows": df.shape[0],
-        "cols": df.shape[1],
-        "columns": list(df.columns),
 
-        # Save dataset
+        # Dataset
         "data": df.to_dict(),
 
-        # Safe KPI
+        # KPI
         "mean": float(df[num_cols[0]].mean()) if len(num_cols) > 0 else None,
         "max": float(df[num_cols[0]].max()) if len(num_cols) > 0 else None,
 
-        # Safe insights
+        # Insights
         "correlation": float(df[num_cols[0]].corr(df[num_cols[1]])) if len(num_cols) >= 2 else None,
-        "top_category": df[cat_cols[0]].value_counts().idxmax() if len(cat_cols) > 0 else None
+        "top_category": df[cat_cols[0]].value_counts().idxmax() if len(cat_cols) > 0 else None,
+
+        # CHART CONFIG (IMPORTANT)
+        "charts": {
+            "scatter": {"x": num_cols[0] if len(num_cols)>0 else None,
+                        "y": num_cols[1] if len(num_cols)>1 else None},
+
+            "line": {"y": num_cols[0] if len(num_cols)>0 else None},
+
+            "hist": {"x": num_cols[0] if len(num_cols)>0 else None},
+
+            "bar": {"cat": cat_cols[0] if len(cat_cols)>0 else None}
+        }
     }
 
-    # Prevent duplicate spam
+    # Prevent duplicate
     if len(st.session_state.history) == 0 or st.session_state.history[-1]["file_name"] != file.name:
         st.session_state.history.append(entry)
 
