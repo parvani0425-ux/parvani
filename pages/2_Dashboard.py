@@ -60,51 +60,85 @@ if df is not None:
     file_type = file.name.split(".")[-1].upper()
 
     source_map = {
-        "CSV": "CSV file (structured tabular data)",
-        "XLSX": "Excel file (spreadsheet data)",
-        "XLS": "Excel file (spreadsheet data)",
-        "JSON": "JSON file (semi-structured data)",
-        "ZIP": "Compressed ZIP file containing dataset"
+        "CSV": "CSV file containing structured tabular data",
+        "XLSX": "Excel file with spreadsheet-based structured data",
+        "XLS": "Excel file with spreadsheet-based structured data",
+        "JSON": "JSON file containing semi-structured hierarchical data",
+        "ZIP": "Compressed ZIP file containing dataset files"
     }
 
-    dataset_source = source_map.get(file_type, "Uploaded dataset")
+    dataset_source = source_map.get(file_type, "User uploaded dataset")
 
     # COLUMN TYPES
     num_cols = df.select_dtypes(include=np.number).columns
     cat_cols = df.select_dtypes(include="object").columns
 
-    # OBJECTIVE
+    # OBJECTIVE (DETAILED)
     if len(num_cols) >= 2:
-        objective = f"Analyze relationships between {num_cols[0]} and {num_cols[1]} to find trends and patterns."
-    elif len(num_cols) == 1:
-        objective = f"Analyze distribution and behavior of {num_cols[0]}."
-    elif len(cat_cols) > 0:
-        objective = f"Analyze categorical patterns in {cat_cols[0]}."
-    else:
-        objective = "Perform general data analysis."
+        objective = f"""
+The primary objective of this analysis is to explore relationships between key numerical variables such as **{num_cols[0]}** and **{num_cols[1]}**.  
+This includes identifying trends, measuring correlations, and understanding how changes in one variable may influence another.
 
-    # BUSINESS PROBLEM
-    if len(cat_cols) > 0 and len(num_cols) > 0:
-        business_problem = f"Understand how {cat_cols[0]} affects {num_cols[0]}."
-    elif len(num_cols) >= 2:
-        business_problem = f"Analyze impact of {num_cols[0]} on {num_cols[1]}."
+The analysis also aims to support predictive modeling and uncover meaningful patterns that can assist in decision-making.
+"""
+    elif len(num_cols) == 1:
+        objective = f"""
+The objective of this analysis is to study the behavior and distribution of the numerical variable **{num_cols[0]}**.  
+This includes evaluating central tendencies (mean, median), variability, and identifying any unusual patterns or outliers.
+
+Such analysis helps in understanding performance consistency and variability in the dataset.
+"""
+    elif len(cat_cols) > 0:
+        objective = f"""
+The objective is to analyze categorical data, particularly focusing on **{cat_cols[0]}**, to identify dominant categories, frequency distribution, and segmentation patterns.
+
+This helps in understanding classification trends and grouping behavior within the dataset.
+"""
     else:
-        business_problem = "Identify patterns and insights."
+        objective = """
+The objective is to perform general exploratory data analysis to understand the structure, composition, and key characteristics of the dataset.
+"""
+
+    # BUSINESS PROBLEM (DETAILED)
+    if len(cat_cols) > 0 and len(num_cols) > 0:
+        business_problem = f"""
+The key analytical problem is to understand how categorical factors such as **{cat_cols[0]}** influence numerical outcomes like **{num_cols[0]}**.
+
+This helps in identifying:
+- High-performing categories  
+- Key drivers affecting performance  
+- Opportunities for optimization  
+
+Such insights are valuable for improving strategy, segmentation, and decision-making.
+"""
+    elif len(num_cols) >= 2:
+        business_problem = f"""
+The main problem is to analyze how **{num_cols[0]}** impacts **{num_cols[1]}** and whether a strong relationship exists between them.
+
+This is useful for:
+- Predictive modeling  
+- Performance forecasting  
+- Identifying key influencing variables  
+"""
+    else:
+        business_problem = """
+The problem focuses on extracting meaningful insights, identifying patterns, and detecting anomalies to support data-driven decision-making.
+"""
 
     # DISPLAY
     st.write(f"""
-**Objective of Analysis:**  
+### 📌 Objective of Analysis
 {objective}
 
-**Dataset Source:**  
+### 📂 Dataset Source
 {dataset_source}
 
-**Key Variables:**  
+### 🔑 Key Variables
 - Total Columns: {df.shape[1]}  
 - Numerical Features: {list(num_cols)}  
 - Categorical Features: {list(cat_cols)}  
 
-**Business Problem:**  
+### 💼 Business / Analytical Problem
 {business_problem}
 """)
 
