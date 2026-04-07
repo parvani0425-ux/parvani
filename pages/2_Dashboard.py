@@ -176,106 +176,54 @@ The problem focuses on extracting meaningful insights, identifying patterns, and
     st.dataframe(df.head())
 
 # ---------------- FEATURE ENGINEERING ----------------
-st.markdown("---")
-st.subheader("⚙️ Feature Engineering (AI Powered)")
+if df is not None:
 
-try:
+    st.markdown("---")
+    st.subheader("⚙️ Feature Engineering (AI Powered)")
 
-    df_fe = df.copy()
+    try:
+        df_fe = df.copy()
 
-    num_cols = df_fe.select_dtypes(include=np.number).columns
-    cat_cols = df_fe.select_dtypes(include="object").columns
+        num_cols = df_fe.select_dtypes(include=np.number).columns
+        cat_cols = df_fe.select_dtypes(include="object").columns
 
-    st.markdown("### 🔧 Applied Transformations")
+        # Fill missing
+        for col in num_cols:
+            df_fe[col] = df_fe[col].fillna(df_fe[col].mean())
 
-    # 1. Handle missing values (safety)
-    for col in num_cols:
-        df_fe[col].fillna(df_fe[col].mean(), inplace=True)
+        for col in cat_cols:
+            df_fe[col] = df_fe[col].fillna(df_fe[col].mode()[0])
 
-    for col in cat_cols:
-        df_fe[col].fillna(df_fe[col].mode()[0], inplace=True)
+        st.success("✔ Missing values handled")
 
-    st.success("✔ Missing values handled (mean/mode)")
+        # Encoding
+        from sklearn.preprocessing import LabelEncoder
+        le = LabelEncoder()
 
-    # 2. Encoding categorical variables
-    from sklearn.preprocessing import LabelEncoder
-
-    le = LabelEncoder()
-
-    encoded_cols = []
-
-    for col in cat_cols:
-        try:
+        for col in cat_cols:
             df_fe[col] = le.fit_transform(df_fe[col])
-            encoded_cols.append(col)
-        except:
-            pass
 
-    if encoded_cols:
-        st.success(f"✔ Encoded categorical columns: {encoded_cols}")
+        st.success("✔ Categorical encoding done")
 
-    # 3. Feature Scaling
-    from sklearn.preprocessing import StandardScaler
+        # Scaling
+        from sklearn.preprocessing import StandardScaler
+        scaler = StandardScaler()
 
-    scaler = StandardScaler()
+        if len(num_cols) > 0:
+            df_fe[num_cols] = scaler.fit_transform(df_fe[num_cols])
+            st.success("✔ Scaling applied")
 
-    if len(num_cols) > 0:
-        df_fe[num_cols] = scaler.fit_transform(df_fe[num_cols])
-        st.success("✔ Numerical features standardized (scaling applied)")
+        # Feature creation
+        if len(num_cols) >= 2:
+            new_col = f"{num_cols[0]}_ratio"
+            df_fe[new_col] = df[num_cols[0]] / (df[num_cols[1]] + 1e-5)
 
-    # 4. Feature Creation (AI logic)
-    if len(num_cols) >= 2:
-        new_col = f"{num_cols[0]}_to_{num_cols[1]}_ratio"
-        df_fe[new_col] = df[num_cols[0]] / (df[num_cols[1]] + 1e-5)
+            st.success(f"✔ Created feature: {new_col}")
 
-        st.success(f"✔ New feature created: {new_col}")
+        st.dataframe(df_fe.head())
 
-    # 5. Remove low variance columns
-    low_var_cols = []
-
-    for col in num_cols:
-        if df[col].nunique() <= 1:
-            low_var_cols.append(col)
-
-    if low_var_cols:
-        df_fe.drop(columns=low_var_cols, inplace=True)
-        st.warning(f"⚠ Removed low variance columns: {low_var_cols}")
-
-    # SHOW RESULT
-    st.markdown("### ✅ Feature Engineered Data")
-    st.dataframe(df_fe.head())
-
-    # ---------------- AI EXPLANATION ----------------
-    st.markdown("### 🤖 AI Feature Engineering Insight")
-
-    st.info(f"""
-### 🔍 What AI Did:
-
-• Cleaned missing values using statistical methods  
-• Converted categorical data into numerical format  
-• Scaled numerical features for better model performance  
-• Created new derived features to improve predictive power  
-• Removed redundant or low-information columns  
-
----
-
-### 💼 Why This Matters:
-
-Feature engineering improves:
-✔ Model accuracy  
-✔ Prediction performance  
-✔ Data quality  
-✔ Analytical insights  
-
----
-
-### 📌 Conclusion:
-
-The dataset is now optimized for machine learning and advanced analytics.
-""")
-
-except Exception as e:
-    st.error(f"Feature Engineering Error: {e}")
+    except Exception as e:
+        st.error(f"Feature Engineering Error: {e}")
 
     # ---------------- DOWNLOAD ----------------
     st.markdown("### ⬇️ Download Cleaned Dataset")
