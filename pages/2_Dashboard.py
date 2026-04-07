@@ -175,48 +175,77 @@ The problem focuses on extracting meaningful insights, identifying patterns, and
     st.subheader("✅ Cleaned Data")
     st.dataframe(df.head())
 
-# ---------------- SAVE HISTORY (FULL ANALYSIS + CHARTS) ----------------
+# ---------------- SAVE FULL ANALYSIS (PERMANENT) ----------------
 import datetime
+import json
+import os
 
-if "history" not in st.session_state:
-    st.session_state.history = []
+history_file = "history.json"
+
+# Load old history
+if os.path.exists(history_file):
+    with open(history_file, "r") as f:
+        history_data = json.load(f)
+else:
+    history_data = []
 
 if df is not None and file is not None:
 
     num_cols = df.select_dtypes(include='number').columns
     cat_cols = df.select_dtypes(include='object').columns
 
+    # SAFE CALCULATIONS
+    mean_val = float(df[num_cols[0]].mean()) if len(num_cols) > 0 else None
+    median_val = float(df[num_cols[0]].median()) if len(num_cols) > 0 else None
+    std_val = float(df[num_cols[0]].std()) if len(num_cols) > 0 else None
+
+    corr_val = float(df[num_cols[0]].corr(df[num_cols[1]])) if len(num_cols) >= 2 else None
+
+    # REGRESSION
+    r2 = None
+    if len(num_cols) >= 2:
+        from sklearn.linear_model import LinearRegression
+        from sklearn.model_selection import train_test_split
+        from sklearn.metrics import r2_score
+
+        X = df[[num_cols[0]]]
+        Y = df[num_cols[1]]
+
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
+        model = LinearRegression()
+        model.fit(X_train, Y_train)
+        preds = model.predict(X_test)
+        r2 = float(r2_score(Y_test, preds))
+
     entry = {
         "file_name": file.name,
         "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
 
-        # Dataset
+        # DATA
         "data": df.to_dict(),
 
-        # KPI
-        "mean": float(df[num_cols[0]].mean()) if len(num_cols) > 0 else None,
-        "max": float(df[num_cols[0]].max()) if len(num_cols) > 0 else None,
+        # STATS
+        "stats": {
+            "mean": mean_val,
+            "median": median_val,
+            "std": std_val
+        },
 
-        # Insights
-        "correlation": float(df[num_cols[0]].corr(df[num_cols[1]])) if len(num_cols) >= 2 else None,
-        "top_category": df[cat_cols[0]].value_counts().idxmax() if len(cat_cols) > 0 else None,
+        # RELATION
+        "correlation": corr_val,
 
-        # CHART CONFIG (IMPORTANT)
-        "charts": {
-            "scatter": {"x": num_cols[0] if len(num_cols)>0 else None,
-                        "y": num_cols[1] if len(num_cols)>1 else None},
+        # REGRESSION
+        "r2_score": r2,
 
-            "line": {"y": num_cols[0] if len(num_cols)>0 else None},
-
-            "hist": {"x": num_cols[0] if len(num_cols)>0 else None},
-
-            "bar": {"cat": cat_cols[0] if len(cat_cols)>0 else None}
-        }
+        # CATEGORY
+        "top_category": df[cat_cols[0]].value_counts().idxmax() if len(cat_cols) > 0 else None
     }
 
-    # Prevent duplicate
-    if len(st.session_state.history) == 0 or st.session_state.history[-1]["file_name"] != file.name:
-        st.session_state.history.append(entry)
+    history_data.append(entry)
+
+    # SAVE TO FILE (PERMANENT)
+    with open(history_file, "w") as f:
+        json.dump(history_data, f)
 
 # ---------------- FEATURE ENGINEERING ----------------
 if df is not None:
