@@ -53,64 +53,46 @@ if df is not None:
     st.subheader("📂 Raw Data")
     st.dataframe(df.head())
 
- # ---------------- DATASET UNDERSTANDING ----------------
-st.markdown("### 🧠 Dataset Understanding & Problem Definition")
+# ---------------- DATASET UNDERSTANDING ----------------
+    st.markdown("### 🧠 Dataset Understanding & Problem Definition")
 
-# -------- DATASET SOURCE --------
-file_type = file.name.split(".")[-1].upper()
+    # DATASET SOURCE
+    file_type = file.name.split(".")[-1].upper()
 
-source_map = {
-    "CSV": "CSV file (structured tabular data)",
-    "XLSX": "Excel file (spreadsheet data)",
-    "XLS": "Excel file (spreadsheet data)",
-    "JSON": "JSON file (semi-structured data)",
-    "ZIP": "Compressed ZIP file containing dataset"
-}
+    source_map = {
+        "CSV": "CSV file (structured tabular data)",
+        "XLSX": "Excel file (spreadsheet data)",
+        "XLS": "Excel file (spreadsheet data)",
+        "JSON": "JSON file (semi-structured data)",
+        "ZIP": "Compressed ZIP file containing dataset"
+    }
 
-dataset_source = source_map.get(file_type, "Uploaded dataset")
+    dataset_source = source_map.get(file_type, "Uploaded dataset")
 
-# -------- COLUMN ANALYSIS --------
-num_cols = df.select_dtypes(include=np.number).columns
-cat_cols = df.select_dtypes(include="object").columns
+    # COLUMN TYPES
+    num_cols = df.select_dtypes(include=np.number).columns
+    cat_cols = df.select_dtypes(include="object").columns
 
-# -------- OBJECTIVE (AI LOGIC) --------
-if len(num_cols) >= 2:
-    objective = f"""
-Analyze relationships between numerical variables such as {num_cols[0]} and {num_cols[1]}, 
-identify trends, correlations, and patterns for predictive insights.
-"""
-elif len(num_cols) == 1:
-    objective = f"""
-Analyze distribution, trends, and statistical behavior of {num_cols[0]} 
-to understand performance and variability.
-"""
-elif len(cat_cols) > 0:
-    objective = f"""
-Analyze categorical patterns in {cat_cols[0]} to identify frequency, segmentation, 
-and dominant categories.
-"""
-else:
-    objective = "Perform general exploratory data analysis to understand structure and patterns."
+    # OBJECTIVE
+    if len(num_cols) >= 2:
+        objective = f"Analyze relationships between {num_cols[0]} and {num_cols[1]} to find trends and patterns."
+    elif len(num_cols) == 1:
+        objective = f"Analyze distribution and behavior of {num_cols[0]}."
+    elif len(cat_cols) > 0:
+        objective = f"Analyze categorical patterns in {cat_cols[0]}."
+    else:
+        objective = "Perform general data analysis."
 
-# -------- BUSINESS PROBLEM (AI LOGIC) --------
-if len(cat_cols) > 0 and len(num_cols) > 0:
-    business_problem = f"""
-Understand how {cat_cols[0]} influences {num_cols[0]} 
-to identify key drivers and improve decision-making.
-"""
-elif len(num_cols) >= 2:
-    business_problem = f"""
-Determine how {num_cols[0]} impacts {num_cols[1]} 
-to support prediction and performance optimization.
-"""
-else:
-    business_problem = """
-Identify patterns, anomalies, and insights from the dataset 
-to support data-driven decisions.
-"""
+    # BUSINESS PROBLEM
+    if len(cat_cols) > 0 and len(num_cols) > 0:
+        business_problem = f"Understand how {cat_cols[0]} affects {num_cols[0]}."
+    elif len(num_cols) >= 2:
+        business_problem = f"Analyze impact of {num_cols[0]} on {num_cols[1]}."
+    else:
+        business_problem = "Identify patterns and insights."
 
-# -------- DISPLAY --------
-st.write(f"""
+    # DISPLAY
+    st.write(f"""
 **Objective of Analysis:**  
 {objective}
 
