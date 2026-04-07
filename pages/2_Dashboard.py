@@ -53,31 +53,78 @@ if df is not None:
     st.subheader("📂 Raw Data")
     st.dataframe(df.head())
 
-    # ---------------- DATASET UNDERSTANDING ----------------
-    st.markdown("### 🧠 Dataset Understanding & Problem Definition")
+ # ---------------- DATASET UNDERSTANDING ----------------
+st.markdown("### 🧠 Dataset Understanding & Problem Definition")
 
-    st.write(f"""
-    **Objective of Analysis:**
-    The goal of this project is to analyze the uploaded dataset to identify patterns, trends, and key performance indicators (KPIs). 
-    The analysis helps in understanding relationships between variables and supports data-driven decision making.
+# -------- DATASET SOURCE --------
+file_type = file.name.split(".")[-1].upper()
 
-    **Dataset Source:**
-    The dataset is user-uploaded (CSV, Excel, JSON, or ZIP), allowing flexible analysis of real-world data.
+source_map = {
+    "CSV": "CSV file (structured tabular data)",
+    "XLSX": "Excel file (spreadsheet data)",
+    "XLS": "Excel file (spreadsheet data)",
+    "JSON": "JSON file (semi-structured data)",
+    "ZIP": "Compressed ZIP file containing dataset"
+}
 
-    **Key Variables:**
-    - Total Columns: {df.shape[1]}
-    - Numerical Features: {list(df.select_dtypes(include=np.number).columns)}
-    - Categorical Features: {list(df.select_dtypes(include='object').columns)}
+dataset_source = source_map.get(file_type, "Uploaded dataset")
 
-    **Business Problem:**
-    The dataset is analyzed to:
-    - Identify trends and patterns  
-    - Detect outliers and inconsistencies  
-    - Understand category performance  
-    - Support prediction and decision-making  
+# -------- COLUMN ANALYSIS --------
+num_cols = df.select_dtypes(include=np.number).columns
+cat_cols = df.select_dtypes(include="object").columns
 
-    This helps businesses gain insights into performance, behavior, and opportunities.
-    """)
+# -------- OBJECTIVE (AI LOGIC) --------
+if len(num_cols) >= 2:
+    objective = f"""
+Analyze relationships between numerical variables such as {num_cols[0]} and {num_cols[1]}, 
+identify trends, correlations, and patterns for predictive insights.
+"""
+elif len(num_cols) == 1:
+    objective = f"""
+Analyze distribution, trends, and statistical behavior of {num_cols[0]} 
+to understand performance and variability.
+"""
+elif len(cat_cols) > 0:
+    objective = f"""
+Analyze categorical patterns in {cat_cols[0]} to identify frequency, segmentation, 
+and dominant categories.
+"""
+else:
+    objective = "Perform general exploratory data analysis to understand structure and patterns."
+
+# -------- BUSINESS PROBLEM (AI LOGIC) --------
+if len(cat_cols) > 0 and len(num_cols) > 0:
+    business_problem = f"""
+Understand how {cat_cols[0]} influences {num_cols[0]} 
+to identify key drivers and improve decision-making.
+"""
+elif len(num_cols) >= 2:
+    business_problem = f"""
+Determine how {num_cols[0]} impacts {num_cols[1]} 
+to support prediction and performance optimization.
+"""
+else:
+    business_problem = """
+Identify patterns, anomalies, and insights from the dataset 
+to support data-driven decisions.
+"""
+
+# -------- DISPLAY --------
+st.write(f"""
+**Objective of Analysis:**  
+{objective}
+
+**Dataset Source:**  
+{dataset_source}
+
+**Key Variables:**  
+- Total Columns: {df.shape[1]}  
+- Numerical Features: {list(num_cols)}  
+- Categorical Features: {list(cat_cols)}  
+
+**Business Problem:**  
+{business_problem}
+""")
 
     # ---------------- DATA CLEANING ----------------
     st.subheader("🧹 Data Cleaning & Preprocessing")
