@@ -1,60 +1,78 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 st.title("👤 Profile & History")
 
-# LOGIN CHECK
 if not st.session_state.get("logged_in", False):
     st.warning("Please login first")
     st.stop()
 
-# CHECK HISTORY
 if "history" not in st.session_state or len(st.session_state.history) == 0:
     st.info("No history yet")
     st.stop()
 
-# ---------------- SHOW HISTORY ----------------
 st.subheader("📜 Your Analysis History")
 
 for i, item in enumerate(reversed(st.session_state.history)):
 
     with st.expander(f"📊 {item['file_name']} | {item['time']}"):
 
-        st.write(f"Rows: {item['rows']}")
-        st.write(f"Columns: {item['cols']}")
-        st.write(f"Column Names: {item['columns']}")
+        df_view = pd.DataFrame(item["data"])
+
+        st.write(f"Rows: {df_view.shape[0]}")
+        st.write(f"Columns: {df_view.shape[1]}")
 
         # KPI
-        if item.get("mean") is not None:
+        if item.get("mean"):
             st.write(f"📊 Mean: {round(item['mean'],2)}")
 
-        if item.get("max") is not None:
+        if item.get("max"):
             st.write(f"📈 Max: {item['max']}")
 
-        # Insights
-        if item.get("correlation") is not None:
-            st.write(f"🔗 Correlation: {round(item['correlation'],2)}")
-
-        if item.get("top_category") is not None:
-            st.write(f"🏆 Top Category: {item['top_category']}")
-
         # VIEW DATA
-        if "data" in item:
-            if st.button(f"👀 View Dataset {i}"):
+        if st.button(f"👀 View Dataset {i}"):
+            st.dataframe(df_view.head())
 
-                df_view = pd.DataFrame(item["data"])
-                st.dataframe(df_view.head())
+        # ---------------- RECREATE CHARTS ----------------
+        charts = item.get("charts", {})
+
+        st.markdown("### 📊 Saved Charts")
+
+        try:
+            # Scatter
+            if charts["scatter"]["x"] and charts["scatter"]["y"]:
+                fig = px.scatter(df_view,
+                                 x=charts["scatter"]["x"],
+                                 y=charts["scatter"]["y"])
+                st.plotly_chart(fig)
+
+            # Line
+            if charts["line"]["y"]:
+                fig = px.line(df_view, y=charts["line"]["y"])
+                st.plotly_chart(fig)
+
+            # Histogram
+            if charts["hist"]["x"]:
+                fig = px.histogram(df_view, x=charts["hist"]["x"])
+                st.plotly_chart(fig)
+
+            # Bar
+            if charts["bar"]["cat"]:
+                top = df_view[charts["bar"]["cat"]].value_counts().head(5)
+                fig = px.bar(x=top.index, y=top.values)
+                st.plotly_chart(fig)
+
+        except Exception as e:
+            st.warning(f"Chart error: {e}")
 
         # DOWNLOAD
-        if "data" in item:
-            df_download = pd.DataFrame(item["data"])
+        csv = df_view.to_csv(index=False).encode("utf-8")
 
-            csv = df_download.to_csv(index=False).encode("utf-8")
-
-            st.download_button(
-                label="⬇️ Download Dataset",
-                data=csv,
-                file_name=f"{item['file_name']}_history.csv",
-                mime="text/csv",
-                key=f"download_{i}"
-            )
+        st.download_button(
+            label="⬇️ Download Dataset",
+            data=csv,
+            file_name=f"{item['file_name']}_history.csv",
+            mime="text/csv",
+            key=f"download_{i}"
+        )
