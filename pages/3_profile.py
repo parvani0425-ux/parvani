@@ -1,73 +1,82 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
 import json
 import os
+import pandas as pd
 
 st.title("👤 Profile & Full Analysis History")
 
-if not os.path.exists("history.json"):
+history_file = "history.json"
+
+# ---------------- SAFE LOAD ----------------
+if not os.path.exists(history_file):
     st.info("No history yet")
     st.stop()
 
-with open("history.json", "r") as f:
-    history = json.load(f)
+try:
+    with open(history_file, "r") as f:
+        content = f.read().strip()
 
-for i, item in enumerate(reversed(history)):
+        if content == "":
+            history = []
+        else:
+            history = json.loads(content)
 
-    with st.expander(f"📊 {item['file_name']} | {item['time']}"):
+except:
+    st.error("⚠️ History file corrupted. Resetting...")
+    history = []
 
-        df_view = pd.DataFrame(item["data"])
+# ---------------- NO DATA ----------------
+if len(history) == 0:
+    st.info("No analysis history found")
+    st.stop()
 
-        # ---------------- STATS ----------------
-        st.markdown("### 📊 Statistics")
+# ---------------- SHOW HISTORY ----------------
+for i, entry in enumerate(reversed(history)):
 
-        stats = item.get("stats", {})
+    st.markdown("---")
+    st.subheader(f"📂 {entry['file_name']}")
 
-        st.write(f"Mean: {stats.get('mean')}")
-        st.write(f"Median: {stats.get('median')}")
-        st.write(f"Std Dev: {stats.get('std')}")
+    st.write(f"🕒 Time: {entry['time']}")
+    st.write(f"📊 Rows: {entry['data'] and len(entry['data'])}")
+    
+    # ---------------- STATS ----------------
+    st.markdown("### 📈 Statistics")
 
-        # ---------------- RELATION ----------------
-        st.markdown("### 🔗 Correlation")
+    stats = entry.get("stats", {})
 
-        st.write(f"Correlation: {item.get('correlation')}")
+    st.write(f"Mean: {stats.get('mean')}")
+    st.write(f"Median: {stats.get('median')}")
+    st.write(f"Std Dev: {stats.get('std')}")
 
-        # ---------------- REGRESSION ----------------
-        st.markdown("### 📈 Regression")
+    # ---------------- RELATION ----------------
+    st.markdown("### 🔗 Relationship")
 
-        st.write(f"R² Score: {item.get('r2_score')}")
+    st.write(f"Correlation: {entry.get('correlation')}")
 
-        # ---------------- CATEGORY ----------------
-        st.markdown("### 🏆 Top Category")
+    # ---------------- REGRESSION ----------------
+    st.markdown("### 📉 Regression")
 
-        st.write(item.get("top_category"))
+    st.write(f"R² Score: {entry.get('r2_score')}")
 
-        # ---------------- CHARTS ----------------
-        st.markdown("### 📊 Charts")
+    # ---------------- CATEGORY ----------------
+    st.markdown("### 🏆 Top Category")
 
-        num_cols = df_view.select_dtypes(include='number').columns
-        cat_cols = df_view.select_dtypes(include='object').columns
+    st.write(entry.get("top_category"))
 
-        if len(num_cols) >= 2:
-            st.plotly_chart(px.scatter(df_view, x=num_cols[0], y=num_cols[1]))
-            st.plotly_chart(px.line(df_view, y=num_cols[0]))
+    # ---------------- VIEW DATA ----------------
+    if st.button(f"👀 View Data {i}"):
 
-        if len(cat_cols) > 0:
-            top = df_view[cat_cols[0]].value_counts().head(5)
-            st.plotly_chart(px.bar(x=top.index, y=top.values))
+        df = pd.DataFrame(entry["data"])
+        st.dataframe(df)
 
-        # ---------------- DATA ----------------
-        if st.button(f"👀 View Data {i}"):
-            st.dataframe(df_view.head())
+    # ---------------- DOWNLOAD ----------------
+    df_download = pd.DataFrame(entry["data"])
 
-        # ---------------- DOWNLOAD ----------------
-        csv = df_view.to_csv(index=False).encode("utf-8")
+    csv = df_download.to_csv(index=False).encode('utf-8')
 
-        st.download_button(
-            "⬇️ Download Dataset",
-            data=csv,
-            file_name="history_data.csv",
-            mime="text/csv",
-            key=f"dl_{i}"
-        )
+    st.download_button(
+        label="⬇️ Download Data",
+        data=csv,
+        file_name=f"{entry['file_name']}_history.csv",
+        mime="text/csv"
+    )
