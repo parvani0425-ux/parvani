@@ -244,6 +244,10 @@ if df is not None and file is not None:
         "top_category": df[cat_cols[0]].value_counts().idxmax() if len(cat_cols) > 0 else None
     }
 
+    # Avoid duplicate entries
+if len(history_data) > 0 and history_data[-1]["file_name"] == file.name:
+    pass
+else:
     history_data.append(entry)
 
     # SAVE TO FILE (PERMANENT)
