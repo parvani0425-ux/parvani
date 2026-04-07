@@ -175,60 +175,56 @@ The problem focuses on extracting meaningful insights, identifying patterns, and
     st.subheader("✅ Cleaned Data")
     st.dataframe(df.head())
 
-# ---------------- SAVE FULL ANALYSIS (FINAL CLEAN VERSION) ----------------
+# ---------------- SAVE FULL ANALYSIS (SAFE FINAL) ----------------
 
 import datetime
 import json
 import os
 
-history_file = "history.json"
+if df is not None and file is not None:
 
-# -------- SAFE LOAD --------
-if os.path.exists(history_file):
-    try:
-        with open(history_file, "r") as f:
-            content = f.read().strip()
-            history_data = json.loads(content) if content else []
-    except:
+    history_file = "history.json"
+
+    # -------- SAFE LOAD --------
+    if os.path.exists(history_file):
+        try:
+            with open(history_file, "r") as f:
+                content = f.read().strip()
+                history_data = json.loads(content) if content else []
+        except:
+            history_data = []
+    else:
         history_data = []
-else:
-    history_data = []
 
-# -------- CREATE ENTRY --------
-entry = {
-    "file_name": file.name,
-    "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    # -------- CREATE ENTRY --------
+    entry = {
+        "file_name": file.name,
+        "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
 
-    # SAFE DATA (IMPORTANT)
-    "data": df.head(50).to_dict(),
+        "data": df.head(50).to_dict(),
 
-    # STATS
-    "stats": {
-        "mean": mean_val,
-        "median": median_val,
-        "std": std_val
-    },
+        "stats": {
+            "mean": mean_val,
+            "median": median_val,
+            "std": std_val
+        },
 
-    # RELATION
-    "correlation": corr_val,
+        "correlation": corr_val,
+        "r2_score": r2,
 
-    # REGRESSION
-    "r2_score": r2,
+        "top_category": df[cat_cols[0]].value_counts().idxmax() if len(cat_cols) > 0 else None
+    }
 
-    # CATEGORY
-    "top_category": df[cat_cols[0]].value_counts().idxmax() if len(cat_cols) > 0 else None
-}
+    # -------- AVOID DUPLICATE --------
+    if len(history_data) == 0 or history_data[-1]["file_name"] != file.name:
+        history_data.append(entry)
 
-# -------- AVOID DUPLICATE --------
-if len(history_data) == 0 or history_data[-1]["file_name"] != file.name:
-    history_data.append(entry)
-
-# -------- SAFE SAVE --------
-try:
-    with open(history_file, "w") as f:
-        json.dump(history_data, f, indent=4)
-except Exception as e:
-    st.error(f"Save error: {e}")
+    # -------- SAVE --------
+    try:
+        with open(history_file, "w") as f:
+            json.dump(history_data, f, indent=4)
+    except Exception as e:
+        st.error(f"Save error: {e}")
 
 # ---------------- FEATURE ENGINEERING ----------------
 if df is not None:
