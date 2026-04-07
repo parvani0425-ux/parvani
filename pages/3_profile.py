@@ -1,78 +1,73 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import json
+import os
 
-st.title("👤 Profile & History")
+st.title("👤 Profile & Full Analysis History")
 
-if not st.session_state.get("logged_in", False):
-    st.warning("Please login first")
-    st.stop()
-
-if "history" not in st.session_state or len(st.session_state.history) == 0:
+if not os.path.exists("history.json"):
     st.info("No history yet")
     st.stop()
 
-st.subheader("📜 Your Analysis History")
+with open("history.json", "r") as f:
+    history = json.load(f)
 
-for i, item in enumerate(reversed(st.session_state.history)):
+for i, item in enumerate(reversed(history)):
 
     with st.expander(f"📊 {item['file_name']} | {item['time']}"):
 
         df_view = pd.DataFrame(item["data"])
 
-        st.write(f"Rows: {df_view.shape[0]}")
-        st.write(f"Columns: {df_view.shape[1]}")
+        # ---------------- STATS ----------------
+        st.markdown("### 📊 Statistics")
 
-        # KPI
-        if item.get("mean"):
-            st.write(f"📊 Mean: {round(item['mean'],2)}")
+        stats = item.get("stats", {})
 
-        if item.get("max"):
-            st.write(f"📈 Max: {item['max']}")
+        st.write(f"Mean: {stats.get('mean')}")
+        st.write(f"Median: {stats.get('median')}")
+        st.write(f"Std Dev: {stats.get('std')}")
 
-        # VIEW DATA
-        if st.button(f"👀 View Dataset {i}"):
+        # ---------------- RELATION ----------------
+        st.markdown("### 🔗 Correlation")
+
+        st.write(f"Correlation: {item.get('correlation')}")
+
+        # ---------------- REGRESSION ----------------
+        st.markdown("### 📈 Regression")
+
+        st.write(f"R² Score: {item.get('r2_score')}")
+
+        # ---------------- CATEGORY ----------------
+        st.markdown("### 🏆 Top Category")
+
+        st.write(item.get("top_category"))
+
+        # ---------------- CHARTS ----------------
+        st.markdown("### 📊 Charts")
+
+        num_cols = df_view.select_dtypes(include='number').columns
+        cat_cols = df_view.select_dtypes(include='object').columns
+
+        if len(num_cols) >= 2:
+            st.plotly_chart(px.scatter(df_view, x=num_cols[0], y=num_cols[1]))
+            st.plotly_chart(px.line(df_view, y=num_cols[0]))
+
+        if len(cat_cols) > 0:
+            top = df_view[cat_cols[0]].value_counts().head(5)
+            st.plotly_chart(px.bar(x=top.index, y=top.values))
+
+        # ---------------- DATA ----------------
+        if st.button(f"👀 View Data {i}"):
             st.dataframe(df_view.head())
 
-        # ---------------- RECREATE CHARTS ----------------
-        charts = item.get("charts", {})
-
-        st.markdown("### 📊 Saved Charts")
-
-        try:
-            # Scatter
-            if charts["scatter"]["x"] and charts["scatter"]["y"]:
-                fig = px.scatter(df_view,
-                                 x=charts["scatter"]["x"],
-                                 y=charts["scatter"]["y"])
-                st.plotly_chart(fig)
-
-            # Line
-            if charts["line"]["y"]:
-                fig = px.line(df_view, y=charts["line"]["y"])
-                st.plotly_chart(fig)
-
-            # Histogram
-            if charts["hist"]["x"]:
-                fig = px.histogram(df_view, x=charts["hist"]["x"])
-                st.plotly_chart(fig)
-
-            # Bar
-            if charts["bar"]["cat"]:
-                top = df_view[charts["bar"]["cat"]].value_counts().head(5)
-                fig = px.bar(x=top.index, y=top.values)
-                st.plotly_chart(fig)
-
-        except Exception as e:
-            st.warning(f"Chart error: {e}")
-
-        # DOWNLOAD
+        # ---------------- DOWNLOAD ----------------
         csv = df_view.to_csv(index=False).encode("utf-8")
 
         st.download_button(
-            label="⬇️ Download Dataset",
+            "⬇️ Download Dataset",
             data=csv,
-            file_name=f"{item['file_name']}_history.csv",
+            file_name="history_data.csv",
             mime="text/csv",
-            key=f"download_{i}"
+            key=f"dl_{i}"
         )
