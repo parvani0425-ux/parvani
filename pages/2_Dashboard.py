@@ -53,21 +53,76 @@ if df is not None:
     st.subheader("📂 Raw Data")
     st.dataframe(df.head())
 
-    # CLEANING
-    st.subheader("🧹 Data Cleaning")
+    # ---------------- DATASET UNDERSTANDING ----------------
+    st.markdown("### 🧠 Dataset Understanding & Problem Definition")
+
+    st.write(f"""
+    **Objective of Analysis:**
+    The goal of this project is to analyze the uploaded dataset to identify patterns, trends, and key performance indicators (KPIs). 
+    The analysis helps in understanding relationships between variables and supports data-driven decision making.
+
+    **Dataset Source:**
+    The dataset is user-uploaded (CSV, Excel, JSON, or ZIP), allowing flexible analysis of real-world data.
+
+    **Key Variables:**
+    - Total Columns: {df.shape[1]}
+    - Numerical Features: {list(df.select_dtypes(include=np.number).columns)}
+    - Categorical Features: {list(df.select_dtypes(include='object').columns)}
+
+    **Business Problem:**
+    The dataset is analyzed to:
+    - Identify trends and patterns  
+    - Detect outliers and inconsistencies  
+    - Understand category performance  
+    - Support prediction and decision-making  
+
+    This helps businesses gain insights into performance, behavior, and opportunities.
+    """)
+
+    # ---------------- DATA CLEANING ----------------
+    st.subheader("🧹 Data Cleaning & Preprocessing")
+
+    st.write("""
+    This step ensures data quality by:
+    - Removing duplicate records  
+    - Handling missing values  
+    - Preparing dataset for analysis  
+    """)
 
     before = len(df)
+
     df = df.drop_duplicates()
     after_dup = len(df)
 
     missing = df.isnull().sum().sum()
     df = df.dropna()
 
-    st.success(f"✔ Removed {before - after_dup} duplicates")
+    df = df.infer_objects()
+
+    st.success(f"✔ Removed {before - after_dup} duplicate rows")
     st.success(f"✔ Removed {missing} missing values")
+
+    st.markdown("""
+    ### 🧠 Cleaning Insight
+    - Duplicate removal ensures no repeated data  
+    - Missing values removal improves accuracy  
+    - Data is now consistent and ready for analysis  
+    """)
 
     st.subheader("✅ Cleaned Data")
     st.dataframe(df.head())
+
+    # ---------------- DOWNLOAD ----------------
+    st.markdown("### ⬇️ Download Cleaned Dataset")
+
+    csv = df.to_csv(index=False).encode('utf-8')
+
+    st.download_button(
+        label="Download Cleaned Data",
+        data=csv,
+        file_name="cleaned_data.csv",
+        mime="text/csv"
+    )
 
     # SIMPLIFY LARGE DATA
     if len(df) > 500:
@@ -102,87 +157,27 @@ if df is not None:
         x = num_cols[0]
         y = num_cols[1]
 
-        # SCATTER
-        st.markdown(f"### 🔹 Scatter Plot ({x} vs {y})")
-
-        fig1 = px.scatter(
-            df, x=x, y=y,
-            text=df[y].round(2),
-            labels={x: x, y: y}
-        )
+        fig1 = px.scatter(df, x=x, y=y, text=df[y].round(2))
         fig1.update_traces(textposition="top center")
-        st.plotly_chart(fig1, key="scatter")
-
-        st.markdown("#### 📌 Explanation")
-        st.write(f"""
-        X-axis → {x}  
-        Y-axis → {y}  
-
-        Shows relationship between variables.  
-        Helps in prediction & correlation analysis.
-        """)
-
-        # LINE
-        st.markdown(f"### 🔹 Trend Line ({y})")
+        st.plotly_chart(fig1)
 
         fig2 = px.line(df, y=y, markers=True)
-        st.plotly_chart(fig2, key="line")
+        st.plotly_chart(fig2)
 
-        st.markdown("#### 📌 Explanation")
-        st.write(f"""
-        X-axis → Index/Time  
-        Y-axis → {y}  
-
-        Shows trend → growth or decline patterns.
-        """)
-
-        # BAR
         cat_cols = df.select_dtypes(include="object").columns
 
         if len(cat_cols) > 0:
             cat = cat_cols[0]
             top = df[cat].value_counts().nlargest(7)
 
-            st.markdown(f"### 🔹 Category Count ({cat})")
-
-            fig5 = px.bar(
-                x=top.index,
-                y=top.values,
-                text=top.values,
-                labels={"x": cat, "y": "Count"}
-            )
-            fig5.update_traces(textposition="outside")
-
-            st.plotly_chart(fig5, key="bar")
-
-            st.markdown("#### 📌 Explanation")
-            st.write(f"""
-            X-axis → {cat}  
-            Y-axis → Count  
-
-            Shows top categories → helps segmentation.
-            """)
-
-        # HISTOGRAM
-        st.markdown(f"### 🔹 Distribution ({x})")
+            fig5 = px.bar(x=top.index, y=top.values, text=top.values)
+            st.plotly_chart(fig5)
 
         fig3 = px.histogram(df, x=x, text_auto=True)
-        st.plotly_chart(fig3, key="hist")
+        st.plotly_chart(fig3)
 
-        st.markdown("#### 📌 Explanation")
-        st.write(f"""
-        X-axis → {x}  
-        Y-axis → Frequency  
-
-        Shows distribution & spread of values.
-        """)
-
- # ---------------- REGRESSION ----------------
+        # ---------------- REGRESSION ----------------
         st.subheader("📈 Regression Analysis")
-
-        from sklearn.linear_model import LinearRegression
-        from sklearn.model_selection import train_test_split
-        from sklearn.metrics import r2_score
 
         X = df[[x]]
         Y = df[y]
@@ -199,7 +194,7 @@ if df is not None:
 
         fig_reg = px.scatter(df, x=x, y=y)
         fig_reg.add_traces(px.line(x=X_test[x], y=preds).data)
-        st.plotly_chart(fig_reg, key="reg")
+        st.plotly_chart(fig_regkey="reg")
 
         st.markdown("#### 📌 Explanation")
         st.write(f"""
@@ -712,3 +707,5 @@ This helps understand distribution, variability, and decision-making patterns.
         else:
             st.warning("❌ Selected column is not numerical")
             
+
+
