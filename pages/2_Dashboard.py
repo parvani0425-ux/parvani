@@ -175,87 +175,60 @@ The problem focuses on extracting meaningful insights, identifying patterns, and
     st.subheader("✅ Cleaned Data")
     st.dataframe(df.head())
 
-# ---------------- SAVE FULL ANALYSIS (PERMANENT) ----------------
+# ---------------- SAVE FULL ANALYSIS (FINAL CLEAN VERSION) ----------------
+
 import datetime
 import json
 import os
 
 history_file = "history.json"
 
-# SAFE LOAD
+# -------- SAFE LOAD --------
 if os.path.exists(history_file):
     try:
         with open(history_file, "r") as f:
-            history_data = json.load(f)
+            content = f.read().strip()
+            history_data = json.loads(content) if content else []
     except:
         history_data = []
 else:
     history_data = []
 
-if df is not None and file is not None:
+# -------- CREATE ENTRY --------
+entry = {
+    "file_name": file.name,
+    "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
 
-    num_cols = df.select_dtypes(include='number').columns
-    cat_cols = df.select_dtypes(include='object').columns
+    # SAFE DATA (IMPORTANT)
+    "data": df.head(50).to_dict(),
 
-    # SAFE CALCULATIONS
-    mean_val = float(df[num_cols[0]].mean()) if len(num_cols) > 0 else None
-    median_val = float(df[num_cols[0]].median()) if len(num_cols) > 0 else None
-    std_val = float(df[num_cols[0]].std()) if len(num_cols) > 0 else None
+    # STATS
+    "stats": {
+        "mean": mean_val,
+        "median": median_val,
+        "std": std_val
+    },
 
-    corr_val = float(df[num_cols[0]].corr(df[num_cols[1]])) if len(num_cols) >= 2 else None
+    # RELATION
+    "correlation": corr_val,
 
     # REGRESSION
-    r2 = None
-    if len(num_cols) >= 2:
-        from sklearn.linear_model import LinearRegression
-        from sklearn.model_selection import train_test_split
-        from sklearn.metrics import r2_score
+    "r2_score": r2,
 
-        X = df[[num_cols[0]]]
-        Y = df[num_cols[1]]
+    # CATEGORY
+    "top_category": df[cat_cols[0]].value_counts().idxmax() if len(cat_cols) > 0 else None
+}
 
-        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
-        model = LinearRegression()
-        model.fit(X_train, Y_train)
-        preds = model.predict(X_test)
-        r2 = float(r2_score(Y_test, preds))
-
-    entry = {
-        "file_name": file.name,
-        "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-
-        # DATA
-        "data": df.head(50).to_dict(),
-
-        # STATS
-        "stats": {
-            "mean": mean_val,
-            "median": median_val,
-            "std": std_val
-        },
-
-        # RELATION
-        "correlation": corr_val,
-
-        # REGRESSION
-        "r2_score": r2,
-
-        # CATEGORY
-        "top_category": df[cat_cols[0]].value_counts().idxmax() if len(cat_cols) > 0 else None
-    }
-
-    # Avoid duplicate entries
-if len(history_data) > 0 and history_data[-1]["file_name"] == file.name:
-    pass
-else:
+# -------- AVOID DUPLICATE --------
+if len(history_data) == 0 or history_data[-1]["file_name"] != file.name:
     history_data.append(entry)
 
-    # SAVE TO FILE (PERMANENT)
-    try:
+# -------- SAFE SAVE --------
+try:
     with open(history_file, "w") as f:
         json.dump(history_data, f, indent=4)
 except Exception as e:
-    st.error(f"Save Error:{e}")
+    st.error(f"Save error: {e}")
 
 # ---------------- FEATURE ENGINEERING ----------------
 if df is not None:
