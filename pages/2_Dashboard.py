@@ -191,13 +191,6 @@ if os.path.exists(history_file):
         history_data = []
 else:
     history_data = []
-    
-# Load old history
-if os.path.exists(history_file):
-    with open(history_file, "r") as f:
-        history_data = json.load(f)
-else:
-    history_data = []
 
 if df is not None and file is not None:
 
@@ -232,7 +225,7 @@ if df is not None and file is not None:
         "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
 
         # DATA
-        "data": df.to_dict(),
+        "data": df.head(50).to_dict(),
 
         # STATS
         "stats": {
@@ -254,8 +247,11 @@ if df is not None and file is not None:
     history_data.append(entry)
 
     # SAVE TO FILE (PERMANENT)
+    try:
     with open(history_file, "w") as f:
-        json.dump(history_data, f)
+        json.dump(history_data, f, indent=4)
+except Exception as e:
+    st.error(f"Save Error:{e}")
 
 # ---------------- FEATURE ENGINEERING ----------------
 if df is not None:
