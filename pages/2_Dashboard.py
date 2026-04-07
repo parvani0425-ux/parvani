@@ -176,8 +176,12 @@ if df is not None:
         fig3 = px.histogram(df, x=x, text_auto=True)
         st.plotly_chart(fig3)
 
-        # ---------------- REGRESSION ----------------
+   # ---------------- REGRESSION ----------------
         st.subheader("📈 Regression Analysis")
+
+        from sklearn.linear_model import LinearRegression
+        from sklearn.model_selection import train_test_split
+        from sklearn.metrics import r2_score
 
         X = df[[x]]
         Y = df[y]
@@ -194,7 +198,7 @@ if df is not None:
 
         fig_reg = px.scatter(df, x=x, y=y)
         fig_reg.add_traces(px.line(x=X_test[x], y=preds).data)
-        st.plotly_chart(fig_regkey="reg")
+        st.plotly_chart(fig_reg, key="reg")
 
         st.markdown("#### 📌 Explanation")
         st.write(f"""
@@ -707,5 +711,3 @@ This helps understand distribution, variability, and decision-making patterns.
         else:
             st.warning("❌ Selected column is not numerical")
             
-
-
