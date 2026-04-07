@@ -182,6 +182,16 @@ import os
 
 history_file = "history.json"
 
+# SAFE LOAD
+if os.path.exists(history_file):
+    try:
+        with open(history_file, "r") as f:
+            history_data = json.load(f)
+    except:
+        history_data = []
+else:
+    history_data = []
+    
 # Load old history
 if os.path.exists(history_file):
     with open(history_file, "r") as f:
