@@ -25,30 +25,27 @@ file = st.file_uploader(
     type=["csv", "xlsx", "xls", "zip", "json"]
 )
 
+# ---------------- FILE HANDLING ----------------
 df = None
 
-if file is not None:
-    try:
-        file_type = file.name.split(".")[-1].lower()
+if file:
+    file_type = file.name.split(".")[-1].lower()
 
-        if file_type == "csv":
-            df = pd.read_csv(file)
+    if file_type == "csv":
+        df = pd.read_csv(file)
 
-        elif file_type in ["xlsx", "xls"]:
-            df = pd.read_excel(file)
+    elif file_type in ["xlsx", "xls"]:
+        df = pd.read_excel(file)
 
-        elif file_type == "json":
-            df = pd.read_json(file)
+    elif file_type == "json":
+        df = pd.read_json(file)
 
-        elif file_type == "zip":
-            with zipfile.ZipFile(file) as z:
-                for name in z.namelist():
-                    if name.endswith(".csv"):
-                        df = pd.read_csv(z.open(name))
-                        break
-
-    except Exception as e:
-        st.error(f"File error: {e}")
+    elif file_type == "zip":
+        with zipfile.ZipFile(file) as z:
+            for name in z.namelist():
+                if name.endswith(".csv"):
+                    df = pd.read_csv(z.open(name))
+                    break
 
 # ---------------- PROCESS ----------------
 if df is not None:
@@ -60,7 +57,7 @@ if df is not None:
     st.markdown("### 🧠 Dataset Understanding & Problem Definition")
 
     # DATASET SOURCE
-    file_type = file.name.split(".")[-1].upper() if file else "UNKNOWN"
+    file_type = file.name.split(".")[-1].upper()
 
     source_map = {
         "CSV": "CSV file containing structured tabular data",
@@ -184,12 +181,11 @@ import datetime
 import json
 import os
 
-# ---------------- SAVE FULL ANALYSIS ----------------
 if df is not None and file is not None:
 
     history_file = "history.json"
 
-    # SAFE LOAD
+    # -------- SAFE LOAD --------
     if os.path.exists(history_file):
         try:
             with open(history_file, "r") as f:
@@ -200,7 +196,7 @@ if df is not None and file is not None:
     else:
         history_data = []
 
-    # SAFE CALCULATIONS
+    # -------- SAFE CALCULATIONS --------
     num_cols = df.select_dtypes(include="number").columns
     cat_cols = df.select_dtypes(include="object").columns
 
@@ -210,21 +206,24 @@ if df is not None and file is not None:
         median_val = float(df[num_cols[0]].median())
         std_val = float(df[num_cols[0]].std())
     else:
-        mean_val = median_val = std_val = None
+        mean_val = None
+        median_val = None
+        std_val = None
 
     # Correlation
     if len(num_cols) >= 2:
-        try:
-            corr_val = float(df[num_cols[0]].corr(df[num_cols[1]]))
-        except:
-            corr_val = None
+        corr_val = float(df[num_cols[0]].corr(df[num_cols[1]]))
     else:
         corr_val = None
 
-    # Regression
+    # Regression (safe)
     r2 = None
     if len(num_cols) >= 2:
         try:
+            from sklearn.linear_model import LinearRegression
+            from sklearn.model_selection import train_test_split
+            from sklearn.metrics import r2_score
+
             X = df[[num_cols[0]]]
             Y = df[num_cols[1]]
 
@@ -247,33 +246,34 @@ if df is not None and file is not None:
     else:
         top_category = None
 
-    # CREATE ENTRY
+    # -------- CREATE ENTRY --------
     entry = {
-    "file_name": file.name if file else "unknown_file",
+        "file_name": file.name,
+        "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
 
-    "data": df.head(50).to_dict(),
+        "data": df.head(50).to_dict(),
 
-    "stats": {
-        "mean": mean_val,
-        "median": median_val,
-        "std": std_val
-    },
+        "stats": {
+            "mean": mean_val,
+            "median": median_val,
+            "std": std_val
+        },
 
-    "correlation": corr_val,
-    "r2_score": r2,
-    "top_category": top_category
-}
+        "correlation": corr_val,
+        "r2_score": r2,
+        "top_category": top_category
+    }
 
-    # AVOID DUPLICATE
-    if len(history_data) == 0 or history_data[-1]["file_name"] != entry["file_name"]:
+    # -------- AVOID DUPLICATE --------
+    if len(history_data) == 0 or history_data[-1]["file_name"] != file.name:
         history_data.append(entry)
 
-    # SAVE
+    # -------- SAVE --------
     try:
         with open(history_file, "w") as f:
             json.dump(history_data, f, indent=4)
     except Exception as e:
-        st.error(f"Save error: {e}")
+        st.error(f"Save error: {e}") 
 
 # ---------------- FEATURE ENGINEERING ----------------
 if df is not None:
@@ -282,7 +282,7 @@ if df is not None:
     st.subheader("⚙️ Feature Engineering (AI Powered)")
 
     try:
-        df_fe = df.copy() if df is not None else None
+        df_fe = df.copy()
 
         num_cols = df_fe.select_dtypes(include=np.number).columns
         cat_cols = df_fe.select_dtypes(include="object").columns
@@ -328,8 +328,7 @@ if df is not None:
     # ---------------- DOWNLOAD ----------------
     st.markdown("### ⬇️ Download Cleaned Dataset")
 
-   if df is not None:
-        csv = df.to_csv(index=False).encode('utf-8')
+    csv = df.to_csv(index=False).encode('utf-8')
 
     st.download_button(
         label="Download Cleaned Data",
@@ -362,11 +361,6 @@ if df is not None:
         st.markdown("### 📊 KPI Insight")
         st.write(f"Mean shows average trend of {num_cols[0]}")
         st.write(f"Max shows peak value indicating extreme performance")
-
-    x, y = None, None
-    if len(num_cols) >= 2:
-        x = num_cols[0]
-        y = num_cols[1]
 
     # ---------------- CHARTS ----------------
     st.subheader("📊 Visual Analysis")
@@ -587,8 +581,8 @@ if df is not None:
     st.markdown("### 🧠 Data Story Overview")
 
     st.write(f"""
-    This dataset contains **{df.shape[0]} rows** and **{df.shape[1]} columns**.
-    {f"Relationship analyzed between {x} and {y}." if x is not None and y is not None else ""}
+    This dataset contains **{df.shape[0]} rows** and **{df.shape[1]} columns**.  
+    Relationship analyzed between **{x} and {y}**.
     """)
 
     # ---------------- MAIN VISUALS ----------------
@@ -699,10 +693,6 @@ if df is not None:
 
     except Exception as e:
         st.error(f"AI Insight Error: {e}")
-
-# -------- SAFE COLUMN DETECTION (IMPORTANT) --------
-num_cols = df.select_dtypes(include=np.number).columns if df is not None else []
-cat_cols = df.select_dtypes(include="object").columns if df is not None else []
 
 # ================= RECOMMENDED QUESTIONS =================
 if df is not None:
