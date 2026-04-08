@@ -25,27 +25,30 @@ file = st.file_uploader(
     type=["csv", "xlsx", "xls", "zip", "json"]
 )
 
-# ---------------- FILE HANDLING ----------------
 df = None
 
-if file:
-    file_type = file.name.split(".")[-1].lower()
+if file is not None:
+    try:
+        file_type = file.name.split(".")[-1].lower()
 
-    if file_type == "csv":
-        df = pd.read_csv(file)
+        if file_type == "csv":
+            df = pd.read_csv(file)
 
-    elif file_type in ["xlsx", "xls"]:
-        df = pd.read_excel(file)
+        elif file_type in ["xlsx", "xls"]:
+            df = pd.read_excel(file)
 
-    elif file_type == "json":
-        df = pd.read_json(file)
+        elif file_type == "json":
+            df = pd.read_json(file)
 
-    elif file_type == "zip":
-        with zipfile.ZipFile(file) as z:
-            for name in z.namelist():
-                if name.endswith(".csv"):
-                    df = pd.read_csv(z.open(name))
-                    break
+        elif file_type == "zip":
+            with zipfile.ZipFile(file) as z:
+                for name in z.namelist():
+                    if name.endswith(".csv"):
+                        df = pd.read_csv(z.open(name))
+                        break
+
+    except Exception as e:
+        st.error(f"File error: {e}")
 
 # ---------------- PROCESS ----------------
 if df is not None:
@@ -57,7 +60,7 @@ if df is not None:
     st.markdown("### 🧠 Dataset Understanding & Problem Definition")
 
     # DATASET SOURCE
-    file_type = file.name.split(".")[-1].upper()
+    file_type = file.name.split(".")[-1].upper() if file else unknown
 
     source_map = {
         "CSV": "CSV file containing structured tabular data",
@@ -183,18 +186,17 @@ import os
 
 if df is not None and file is not None:
 
-    history_file = "history.json"
+   history_file = "history.json"
 
-    # -------- SAFE LOAD --------
-    if os.path.exists(history_file):
-        try:
-            with open(history_file, "r") as f:
-                content = f.read().strip()
-                history_data = json.loads(content) if content else []
-        except:
-            history_data = []
-    else:
+if os.path.exists(history_file):
+    try:
+        with open(history_file, "r") as f:
+            content = f.read().strip()
+            history_data = json.loads(content) if content else []
+    except:
         history_data = []
+else:
+    history_data = []
 
     # -------- SAFE CALCULATIONS --------
     num_cols = df.select_dtypes(include="number").columns
@@ -211,11 +213,14 @@ if df is not None and file is not None:
         std_val = None
 
     # Correlation
-    if len(num_cols) >= 2:
+   if len(num_cols) >= 2:
+    try:
         corr_val = float(df[num_cols[0]].corr(df[num_cols[1]]))
-    else:
+    except:
         corr_val = None
-
+else:
+    corr_val = None
+    
     # Regression (safe)
     r2 = None
     if len(num_cols) >= 2:
@@ -248,7 +253,7 @@ if df is not None and file is not None:
 
     # -------- CREATE ENTRY --------
     entry = {
-        "file_name": file.name,
+        "file_name": file.name if file else "unknown_file"
         "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
 
         "data": df.head(50).to_dict(),
@@ -282,7 +287,7 @@ if df is not None:
     st.subheader("⚙️ Feature Engineering (AI Powered)")
 
     try:
-        df_fe = df.copy()
+        df_fe = df.copy() if df is not None else None
 
         num_cols = df_fe.select_dtypes(include=np.number).columns
         cat_cols = df_fe.select_dtypes(include="object").columns
@@ -328,6 +333,7 @@ if df is not None:
     # ---------------- DOWNLOAD ----------------
     st.markdown("### ⬇️ Download Cleaned Dataset")
 
+   if df is not None:
     csv = df.to_csv(index=False).encode('utf-8')
 
     st.download_button(
@@ -361,6 +367,11 @@ if df is not None:
         st.markdown("### 📊 KPI Insight")
         st.write(f"Mean shows average trend of {num_cols[0]}")
         st.write(f"Max shows peak value indicating extreme performance")
+
+    x, y = None, None
+    if len(num_cols) >= 2:
+        x = num_cols[0]
+        y = num_cols[1]
 
     # ---------------- CHARTS ----------------
     st.subheader("📊 Visual Analysis")
@@ -474,6 +485,11 @@ if df is not None:
         Regression predicts {y} based on {x}.  
         R² score shows model accuracy.
         """)
+        if x is not None and y is not None:
+    try:
+        ...
+    except:
+        st.warning("Regression could not be performed")
 
 # ================= AI CHART GENERATOR =================
 
@@ -582,8 +598,7 @@ if df is not None:
 
     st.write(f"""
     This dataset contains **{df.shape[0]} rows** and **{df.shape[1]} columns**.  
-    Relationship analyzed between **{x} and {y}**.
-    """)
+    {f"Relationship analyzed between {x} and {y}." if x and y else ""}
 
     # ---------------- MAIN VISUALS ----------------
     col1, col2 = st.columns(2)
@@ -693,6 +708,10 @@ if df is not None:
 
     except Exception as e:
         st.error(f"AI Insight Error: {e}")
+
+# -------- SAFE COLUMN DETECTION (IMPORTANT) --------
+num_cols = df.select_dtypes(include=np.number).columns if df is not None else []
+cat_cols = df.select_dtypes(include="object").columns if df is not None else []
 
 # ================= RECOMMENDED QUESTIONS =================
 if df is not None:
