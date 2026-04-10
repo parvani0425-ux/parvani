@@ -52,6 +52,38 @@ st.markdown("""
 .stTabs [data-baseweb="tab"] { background: transparent !important; border-radius: 8px !important; color: rgba(245,213,224,0.4) !important; font-size: 12px !important; font-weight: 600 !important; border: none !important; }
 .stTabs [aria-selected="true"] { background: linear-gradient(135deg, #7B337E, #6667AB) !important; color: #F5D5E0 !important; }
 .stDownloadButton > button { background: rgba(102,103,171,0.12) !important; border: 1px solid rgba(102,103,171,0.3) !important; color: #6667AB !important; border-radius: 10px !important; }
+
+/* ── STORYTELLING GRID ── */
+.story-grid-outer {
+    background: rgba(102,103,171,0.05);
+    border: 1px solid rgba(102,103,171,0.15);
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.story-chart-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 13px;
+    color: #F5D5E0;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+.story-chart-note {
+    font-size: 10px;
+    color: rgba(245,213,224,0.35);
+    margin-bottom: 10px;
+}
+.story-stat-chip {
+    display: inline-block;
+    background: rgba(123,51,126,0.18);
+    border: 1px solid rgba(123,51,126,0.3);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 10px;
+    color: rgba(245,213,224,0.65);
+    margin-right: 6px;
+    margin-top: 6px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -270,60 +302,138 @@ if df is not None:
 
     st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
 
-    # ── VISUAL ANALYSIS ──
-    st.markdown('<div class="section-head">📊 Visual Analysis</div>', unsafe_allow_html=True)
+    # ════════════════════════════════════════════════════════
+    # ── VISUAL ANALYSIS — ALL CHARTS IN ONE STORYTELLING GRID
+    # ════════════════════════════════════════════════════════
+    st.markdown('<div class="section-head">📊 Visual Analysis — Data Storytelling</div>', unsafe_allow_html=True)
 
     if len(num_cols) >= 2:
         x, y = num_cols[0], num_cols[1]
 
-        col_l, col_r = st.columns(2)
-        with col_l:
-            st.markdown(f'<div class="chart-label">Scatter — {x} vs {y}</div><div class="chart-note">Reveals correlation and relationship strength between variables.</div>', unsafe_allow_html=True)
+        # ── Row 1: Scatter + Line + Histogram side by side ──
+        r1c1, r1c2, r1c3 = st.columns(3)
+
+        with r1c1:
+            st.markdown(f'<div class="story-chart-title">Scatter — {x} vs {y}</div><div class="story-chart-note">Correlation & relationship strength</div>', unsafe_allow_html=True)
             fig1 = px.scatter(df, x=x, y=y, color_discrete_sequence=[COLORS[0]])
-            fig1.update_layout(**PLOT_LAYOUT)
+            fig1.update_layout(**PLOT_LAYOUT, height=220)
+            fig1.update_traces(marker=dict(size=5, opacity=0.75))
             st.plotly_chart(fig1, use_container_width=True, key="sc1")
 
-        with col_r:
-            st.markdown(f'<div class="chart-label">Trend — {y} over Index</div><div class="chart-note">Shows growth or decline patterns across dataset observations.</div>', unsafe_allow_html=True)
-            fig2 = px.line(df, y=y, markers=True, color_discrete_sequence=[COLORS[1]])
-            fig2.update_layout(**PLOT_LAYOUT)
+        with r1c2:
+            st.markdown(f'<div class="story-chart-title">Trend — {y} over Index</div><div class="story-chart-note">Growth / decline patterns</div>', unsafe_allow_html=True)
+            fig2 = px.line(df, y=y, markers=False, color_discrete_sequence=[COLORS[1]])
+            fig2.update_layout(**PLOT_LAYOUT, height=220)
+            fig2.update_traces(line=dict(width=2))
             st.plotly_chart(fig2, use_container_width=True, key="ln1")
 
-        col_l2, col_r2 = st.columns(2)
-        with col_l2:
-            st.markdown(f'<div class="chart-label">Distribution — {x}</div><div class="chart-note">Shows frequency spread; narrow = stable, wide = variable.</div>', unsafe_allow_html=True)
+        with r1c3:
+            st.markdown(f'<div class="story-chart-title">Distribution — {x}</div><div class="story-chart-note">Frequency spread & variability</div>', unsafe_allow_html=True)
             fig3 = px.histogram(df, x=x, color_discrete_sequence=[COLORS[0]], nbins=20)
-            fig3.update_layout(**PLOT_LAYOUT)
+            fig3.update_layout(**PLOT_LAYOUT, height=220)
             st.plotly_chart(fig3, use_container_width=True, key="hi1")
 
-        with col_r2:
+        # ── Row 2: Category Bar + Box Plot + Violin ──
+        r2c1, r2c2, r2c3 = st.columns(3)
+
+        with r2c1:
             if len(cat_cols) > 0:
                 top_cats = df[cat_cols[0]].value_counts().nlargest(7)
-                st.markdown(f'<div class="chart-label">Category — {cat_cols[0]}</div><div class="chart-note">Frequency of top categories — helps market segmentation.</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="story-chart-title">Category — {cat_cols[0]}</div><div class="story-chart-note">Top segments by frequency</div>', unsafe_allow_html=True)
                 fig4 = px.bar(x=top_cats.index, y=top_cats.values, color_discrete_sequence=[COLORS[1]], text_auto=True)
-                fig4.update_layout(**PLOT_LAYOUT)
+                fig4.update_layout(**PLOT_LAYOUT, height=220)
+                fig4.update_traces(marker_line_width=0)
                 st.plotly_chart(fig4, use_container_width=True, key="br1")
 
-        st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
+        with r2c2:
+            if len(cat_cols) > 0:
+                st.markdown(f'<div class="story-chart-title">Box Plot — {x} by {cat_cols[0]}</div><div class="story-chart-note">Spread, median & outliers per group</div>', unsafe_allow_html=True)
+                top7 = df[cat_cols[0]].value_counts().nlargest(7).index
+                df_box = df[df[cat_cols[0]].isin(top7)]
+                fig_box = px.box(df_box, x=cat_cols[0], y=x, color_discrete_sequence=[COLORS[0]])
+                fig_box.update_layout(**PLOT_LAYOUT, height=220)
+                st.plotly_chart(fig_box, use_container_width=True, key="bx1")
+            else:
+                st.markdown(f'<div class="story-chart-title">Box Plot — {x}</div><div class="story-chart-note">Spread & outlier detection</div>', unsafe_allow_html=True)
+                fig_box = px.box(df, y=x, color_discrete_sequence=[COLORS[0]])
+                fig_box.update_layout(**PLOT_LAYOUT, height=220)
+                st.plotly_chart(fig_box, use_container_width=True, key="bx1")
 
-        # ── REGRESSION ──
+        with r2c3:
+            st.markdown(f'<div class="story-chart-title">Distribution — {y}</div><div class="story-chart-note">Value spread of second variable</div>', unsafe_allow_html=True)
+            fig_hist2 = px.histogram(df, x=y, color_discrete_sequence=[COLORS[4]], nbins=20)
+            fig_hist2.update_layout(**PLOT_LAYOUT, height=220)
+            st.plotly_chart(fig_hist2, use_container_width=True, key="hi2")
+
+        # ── Row 3: Heatmap (correlation matrix) + Area Chart + Pie ──
+        r3c1, r3c2, r3c3 = st.columns(3)
+
+        with r3c1:
+            st.markdown('<div class="story-chart-title">Correlation Heatmap</div><div class="story-chart-note">Pairwise variable relationships</div>', unsafe_allow_html=True)
+            corr_df = df[num_cols[:6]].corr() if len(num_cols) >= 2 else df[num_cols].corr()
+            fig_heat = go.Figure(data=go.Heatmap(
+                z=corr_df.values,
+                x=corr_df.columns.tolist(),
+                y=corr_df.columns.tolist(),
+                colorscale=[[0,"#420D4B"],[0.5,"#6667AB"],[1,"#F5D5E0"]],
+                showscale=False,
+                text=np.round(corr_df.values, 2),
+                texttemplate="%{text}",
+                textfont=dict(size=9)
+            ))
+            fig_heat.update_layout(**PLOT_LAYOUT, height=220)
+            st.plotly_chart(fig_heat, use_container_width=True, key="ht1")
+
+        with r3c2:
+            st.markdown(f'<div class="story-chart-title">Area Chart — {x}</div><div class="story-chart-note">Cumulative trend over observations</div>', unsafe_allow_html=True)
+            fig_area = px.area(df.head(100), y=x, color_discrete_sequence=[COLORS[1]])
+            fig_area.update_layout(**PLOT_LAYOUT, height=220)
+            fig_area.update_traces(line=dict(width=1.5), fillcolor="rgba(102,103,171,0.18)")
+            st.plotly_chart(fig_area, use_container_width=True, key="ar1")
+
+        with r3c3:
+            if len(cat_cols) > 0:
+                st.markdown(f'<div class="story-chart-title">Pie — {cat_cols[0]} Share</div><div class="story-chart-note">Proportional segment breakdown</div>', unsafe_allow_html=True)
+                pie_data = df[cat_cols[0]].value_counts().nlargest(6)
+                fig_pie = px.pie(values=pie_data.values, names=pie_data.index,
+                                 color_discrete_sequence=COLORS, hole=0.45)
+                fig_pie.update_layout(**PLOT_LAYOUT, height=220,
+                                      legend=dict(font=dict(size=9), orientation="v"))
+                fig_pie.update_traces(textfont_size=9)
+                st.plotly_chart(fig_pie, use_container_width=True, key="pi1")
+
+        # ── Row 4: Regression full width ──
+        st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
         st.markdown('<div class="section-head">📈 Regression Analysis</div>', unsafe_allow_html=True)
+
         X_r = df[[x]]; Y_r = df[y]
         Xtr,Xte,Ytr,Yte = train_test_split(X_r, Y_r, test_size=0.2)
         mdl = LinearRegression(); mdl.fit(Xtr, Ytr)
         preds = mdl.predict(Xte)
         score = r2_score(Yte, preds)
 
-        if score < 0:
-            st.info("📊 R² Score: N/A — Dataset too small for reliable regression. Upload more data for accurate predictions.")
-        else:
-            st.success(f"✅ R² Accuracy: **{round(score, 4)}** — Model explains **{round(score*100,1)}%** of variance")
+        reg_c1, reg_c2 = st.columns([2, 1])
 
-        fig_reg = px.scatter(df, x=x, y=y, color_discrete_sequence=[COLORS[0]], opacity=0.6)
-        fig_reg.add_trace(go.Scatter(x=Xte[x], y=preds, mode="lines", name="Regression Line",
-                                      line=dict(color="#6667AB", width=2.5)))
-        fig_reg.update_layout(**PLOT_LAYOUT, title=f"Regression: {x} → {y}")
-        st.plotly_chart(fig_reg, use_container_width=True, key="reg1")
+        with reg_c1:
+            if score < 0:
+                st.info("📊 R² Score: N/A — Dataset too small. Upload more data.")
+            else:
+                st.success(f"✅ R² Accuracy: **{round(score, 4)}** — Model explains **{round(score*100,1)}%** of variance")
+
+            fig_reg = px.scatter(df, x=x, y=y, color_discrete_sequence=[COLORS[0]], opacity=0.5)
+            fig_reg.add_trace(go.Scatter(x=Xte[x], y=preds, mode="lines", name="Regression Line",
+                                          line=dict(color="#6667AB", width=2.5)))
+            fig_reg.update_layout(**PLOT_LAYOUT, height=260, title=f"Regression: {x} → {y}")
+            st.plotly_chart(fig_reg, use_container_width=True, key="reg1")
+
+        with reg_c2:
+            st.markdown(f'<div class="story-chart-title">Residuals</div><div class="story-chart-note">Prediction error distribution</div>', unsafe_allow_html=True)
+            residuals = Yte.values - preds
+            fig_res = px.histogram(x=residuals, nbins=20,
+                                   color_discrete_sequence=[COLORS[4]])
+            fig_res.update_layout(**PLOT_LAYOUT, height=260,
+                                  xaxis_title="Residual", yaxis_title="Count")
+            st.plotly_chart(fig_res, use_container_width=True, key="res1")
 
     st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
 
@@ -470,3 +580,4 @@ if df is not None:
         st.markdown(f'<div class="insight-row" style="margin-top:12px;">📌 Distribution is <b>{skew_note}</b>. Std Dev of <b>{round(d.std(),2)}</b> indicates {"low variability — stable data." if d.std() < d.mean()*0.3 else "high variability."}</div>', unsafe_allow_html=True)
     elif col_q2:
         st.warning("⚠️ Selected column is not numerical")
+        
