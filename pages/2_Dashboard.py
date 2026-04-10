@@ -56,7 +56,6 @@ if df is not None:
 # ---------------- DATASET UNDERSTANDING ----------------
     st.markdown("### 🧠 Dataset Understanding & Problem Definition")
 
-    # DATASET SOURCE
     file_type = file.name.split(".")[-1].upper()
 
     source_map = {
@@ -69,11 +68,9 @@ if df is not None:
 
     dataset_source = source_map.get(file_type, "User uploaded dataset")
 
-    # COLUMN TYPES
     num_cols = df.select_dtypes(include=np.number).columns
     cat_cols = df.select_dtypes(include="object").columns
 
-    # OBJECTIVE (DETAILED)
     if len(num_cols) >= 2:
         objective = f"""
 The primary objective of this analysis is to explore relationships between key numerical variables such as **{num_cols[0]}** and **{num_cols[1]}**.  
@@ -85,21 +82,14 @@ The analysis also aims to support predictive modeling and uncover meaningful pat
         objective = f"""
 The objective of this analysis is to study the behavior and distribution of the numerical variable **{num_cols[0]}**.  
 This includes evaluating central tendencies (mean, median), variability, and identifying any unusual patterns or outliers.
-
-Such analysis helps in understanding performance consistency and variability in the dataset.
 """
     elif len(cat_cols) > 0:
         objective = f"""
 The objective is to analyze categorical data, particularly focusing on **{cat_cols[0]}**, to identify dominant categories, frequency distribution, and segmentation patterns.
-
-This helps in understanding classification trends and grouping behavior within the dataset.
 """
     else:
-        objective = """
-The objective is to perform general exploratory data analysis to understand the structure, composition, and key characteristics of the dataset.
-"""
+        objective = "The objective is to perform general exploratory data analysis."
 
-    # BUSINESS PROBLEM (DETAILED)
     if len(cat_cols) > 0 and len(num_cols) > 0:
         business_problem = f"""
 The key analytical problem is to understand how categorical factors such as **{cat_cols[0]}** influence numerical outcomes like **{num_cols[0]}**.
@@ -114,18 +104,10 @@ Such insights are valuable for improving strategy, segmentation, and decision-ma
     elif len(num_cols) >= 2:
         business_problem = f"""
 The main problem is to analyze how **{num_cols[0]}** impacts **{num_cols[1]}** and whether a strong relationship exists between them.
-
-This is useful for:
-- Predictive modeling  
-- Performance forecasting  
-- Identifying key influencing variables  
 """
     else:
-        business_problem = """
-The problem focuses on extracting meaningful insights, identifying patterns, and detecting anomalies to support data-driven decision-making.
-"""
+        business_problem = "The problem focuses on extracting meaningful insights and detecting anomalies."
 
-    # DISPLAY
     st.write(f"""
 ### 📌 Objective of Analysis
 {objective}
@@ -153,13 +135,10 @@ The problem focuses on extracting meaningful insights, identifying patterns, and
     """)
 
     before = len(df)
-
     df = df.drop_duplicates()
     after_dup = len(df)
-
     missing = df.isnull().sum().sum()
     df = df.dropna()
-
     df = df.infer_objects()
 
     st.success(f"✔ Removed {before - after_dup} duplicate rows")
@@ -175,7 +154,7 @@ The problem focuses on extracting meaningful insights, identifying patterns, and
     st.subheader("✅ Cleaned Data")
     st.dataframe(df.head())
 
-# ---------------- SAVE FULL ANALYSIS (FINAL CLEAN VERSION) ----------------
+# ---------------- SAVE FULL ANALYSIS ----------------
 
 import datetime
 import json
@@ -185,7 +164,6 @@ if df is not None and file is not None:
 
     history_file = "history.json"
 
-    # -------- SAFE LOAD --------
     if os.path.exists(history_file):
         try:
             with open(history_file, "r") as f:
@@ -196,48 +174,34 @@ if df is not None and file is not None:
     else:
         history_data = []
 
-    # -------- SAFE CALCULATIONS --------
     num_cols = df.select_dtypes(include="number").columns
     cat_cols = df.select_dtypes(include="object").columns
 
-    # Stats
     if len(num_cols) > 0:
         mean_val = float(df[num_cols[0]].mean())
         median_val = float(df[num_cols[0]].median())
         std_val = float(df[num_cols[0]].std())
     else:
-        mean_val = None
-        median_val = None
-        std_val = None
+        mean_val = median_val = std_val = None
 
-    # Correlation
     if len(num_cols) >= 2:
         corr_val = float(df[num_cols[0]].corr(df[num_cols[1]]))
     else:
         corr_val = None
 
-    # Regression (safe)
     r2 = None
     if len(num_cols) >= 2:
         try:
-            from sklearn.linear_model import LinearRegression
-            from sklearn.model_selection import train_test_split
-            from sklearn.metrics import r2_score
-
             X = df[[num_cols[0]]]
             Y = df[num_cols[1]]
-
             X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
-
             model = LinearRegression()
             model.fit(X_train, Y_train)
-
             preds = model.predict(X_test)
             r2 = float(r2_score(Y_test, preds))
         except:
             r2 = None
 
-    # Top category
     if len(cat_cols) > 0:
         try:
             top_category = df[cat_cols[0]].value_counts().idxmax()
@@ -246,34 +210,24 @@ if df is not None and file is not None:
     else:
         top_category = None
 
-    # -------- CREATE ENTRY --------
     entry = {
         "file_name": file.name,
         "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-
         "data": df.head(50).to_dict(),
-
-        "stats": {
-            "mean": mean_val,
-            "median": median_val,
-            "std": std_val
-        },
-
+        "stats": {"mean": mean_val, "median": median_val, "std": std_val},
         "correlation": corr_val,
         "r2_score": r2,
         "top_category": top_category
     }
 
-    # -------- AVOID DUPLICATE --------
     if len(history_data) == 0 or history_data[-1]["file_name"] != file.name:
         history_data.append(entry)
 
-    # -------- SAVE --------
     try:
         with open(history_file, "w") as f:
             json.dump(history_data, f, indent=4)
     except Exception as e:
-        st.error(f"Save error: {e}") 
+        st.error(f"Save error: {e}")
 
 # ---------------- FEATURE ENGINEERING ----------------
 if df is not None:
@@ -283,41 +237,31 @@ if df is not None:
 
     try:
         df_fe = df.copy()
-
         num_cols = df_fe.select_dtypes(include=np.number).columns
         cat_cols = df_fe.select_dtypes(include="object").columns
 
-        # Fill missing
         for col in num_cols:
             df_fe[col] = df_fe[col].fillna(df_fe[col].mean())
-
         for col in cat_cols:
             df_fe[col] = df_fe[col].fillna(df_fe[col].mode()[0])
 
         st.success("✔ Missing values handled")
 
-        # Encoding
         from sklearn.preprocessing import LabelEncoder
         le = LabelEncoder()
-
         for col in cat_cols:
             df_fe[col] = le.fit_transform(df_fe[col])
-
         st.success("✔ Categorical encoding done")
 
-        # Scaling
         from sklearn.preprocessing import StandardScaler
         scaler = StandardScaler()
-
         if len(num_cols) > 0:
             df_fe[num_cols] = scaler.fit_transform(df_fe[num_cols])
             st.success("✔ Scaling applied")
 
-        # Feature creation
         if len(num_cols) >= 2:
             new_col = f"{num_cols[0]}_ratio"
             df_fe[new_col] = df[num_cols[0]] / (df[num_cols[1]] + 1e-5)
-
             st.success(f"✔ Created feature: {new_col}")
 
         st.dataframe(df_fe.head())
@@ -327,9 +271,7 @@ if df is not None:
 
     # ---------------- DOWNLOAD ----------------
     st.markdown("### ⬇️ Download Cleaned Dataset")
-
     csv = df.to_csv(index=False).encode('utf-8')
-
     st.download_button(
         label="Download Cleaned Data",
         data=csv,
@@ -337,30 +279,77 @@ if df is not None:
         mime="text/csv"
     )
 
-    # SIMPLIFY LARGE DATA
     if len(df) > 500:
         for col in df.select_dtypes(include="object").columns:
             top_vals = df[col].value_counts().nlargest(7).index
             df = df[df[col].isin(top_vals)]
         st.info("Large data simplified → showing top categories")
 
- # ---------------- KPI ----------------
+    # ============================================================
+    # ---------------- KPI DASHBOARD (IMPROVED) ----------------
+    # ============================================================
     st.subheader("📌 KPI Dashboard")
 
     num_cols = df.select_dtypes(include=np.number).columns
+    cat_cols = df.select_dtypes(include="object").columns
 
+    # --- ROW 1: Basic KPIs ---
     c1, c2, c3, c4 = st.columns(4)
-
-    c1.metric("Rows", df.shape[0])
-    c2.metric("Columns", df.shape[1])
+    c1.metric("📋 Total Records", df.shape[0])
+    c2.metric("🗂️ Total Columns", df.shape[1])
 
     if len(num_cols) > 0:
-        c3.metric("Average", round(df[num_cols[0]].mean(), 2))
-        c4.metric("Max", df[num_cols[0]].max())
+        avg_val = round(df[num_cols[0]].mean(), 2)
+        max_val = df[num_cols[0]].max()
+        c3.metric(f"📊 Avg {num_cols[0]}", avg_val)
+        c4.metric(f"🔝 Max {num_cols[0]}", max_val)
 
-        st.markdown("### 📊 KPI Insight")
-        st.write(f"Mean shows average trend of {num_cols[0]}")
-        st.write(f"Max shows peak value indicating extreme performance")
+    # --- ROW 2: Business KPIs ---
+    if len(num_cols) > 0:
+        st.markdown("#### 💼 Business KPIs")
+
+        b1, b2, b3 = st.columns(3)
+
+        # KPI 1: Min value
+        min_val = df[num_cols[0]].min()
+        b1.metric(f"⬇️ Min {num_cols[0]}", min_val)
+
+        # KPI 2: Price Range
+        price_range = round(max_val - min_val, 2)
+        b2.metric(f"📏 {num_cols[0]} Range", price_range)
+
+        # KPI 3: Median
+        median_val = round(df[num_cols[0]].median(), 2)
+        b3.metric(f"📍 Median {num_cols[0]}", median_val)
+
+        # --- ROW 3: Category KPIs ---
+        if len(cat_cols) > 0:
+            k1, k2 = st.columns(2)
+
+            # KPI 4: Top Brand / Category
+            top_brand = df[cat_cols[0]].value_counts().idxmax()
+            top_brand_count = df[cat_cols[0]].value_counts().max()
+            k1.metric(f"🏆 Top {cat_cols[0]}", top_brand, f"{top_brand_count} entries")
+
+            # KPI 5: Most Expensive Brand (if num + cat exist)
+            try:
+                most_expensive = df.groupby(cat_cols[0])[num_cols[0]].mean().idxmax()
+                most_expensive_val = round(df.groupby(cat_cols[0])[num_cols[0]].mean().max(), 2)
+                k2.metric(f"💰 Highest Avg {num_cols[0]} ({cat_cols[0]})", most_expensive, f"Avg: {most_expensive_val}")
+            except:
+                pass
+
+        # --- KPI INSIGHTS ---
+        st.markdown("#### 📌 KPI Insights")
+        st.write(f"• **Average {num_cols[0]}** is **{avg_val}** — this represents the typical value across all records.")
+        st.write(f"• **{num_cols[0]} Range** of **{price_range}** shows the spread between lowest and highest values.")
+        st.write(f"• **Median {num_cols[0]}** is **{median_val}** — values above this are above average performance.")
+        if len(cat_cols) > 0:
+            st.write(f"• **{top_brand}** is the most frequent {cat_cols[0]} with **{top_brand_count}** entries — dominates the dataset.")
+            try:
+                st.write(f"• **{most_expensive}** has the highest average {num_cols[0]} of **{most_expensive_val}** — premium segment leader.")
+            except:
+                pass
 
     # ---------------- CHARTS ----------------
     st.subheader("📊 Visual Analysis")
@@ -370,275 +359,144 @@ if df is not None:
         x = num_cols[0]
         y = num_cols[1]
 
-        # SCATTER
         st.markdown(f"### 🔹 Scatter Plot ({x} vs {y})")
-
-        fig1 = px.scatter(
-            df, x=x, y=y,
-            text=df[y].round(2),
-            labels={x: x, y: y}
-        )
+        fig1 = px.scatter(df, x=x, y=y, text=df[y].round(2), labels={x: x, y: y})
         fig1.update_traces(textposition="top center")
         st.plotly_chart(fig1, key="scatter")
 
         st.markdown("#### 📌 Explanation")
-        st.write(f"""
-        X-axis → {x}  
-        Y-axis → {y}  
+        st.write(f"X-axis → {x} | Y-axis → {y}\n\nShows relationship between variables. Helps in prediction & correlation analysis.")
 
-        Shows relationship between variables.  
-        Helps in prediction & correlation analysis.
-        """)
-
-        # LINE
         st.markdown(f"### 🔹 Trend Line ({y})")
-
         fig2 = px.line(df, y=y, markers=True)
         st.plotly_chart(fig2, key="line")
 
         st.markdown("#### 📌 Explanation")
-        st.write(f"""
-        X-axis → Index/Time  
-        Y-axis → {y}  
+        st.write(f"X-axis → Index/Time | Y-axis → {y}\n\nShows trend → growth or decline patterns.")
 
-        Shows trend → growth or decline patterns.
-        """)
-
-        # BAR
         cat_cols = df.select_dtypes(include="object").columns
-
         if len(cat_cols) > 0:
             cat = cat_cols[0]
             top = df[cat].value_counts().nlargest(7)
-
             st.markdown(f"### 🔹 Category Count ({cat})")
-
-            fig5 = px.bar(
-                x=top.index,
-                y=top.values,
-                text=top.values,
-                labels={"x": cat, "y": "Count"}
-            )
+            fig5 = px.bar(x=top.index, y=top.values, text=top.values, labels={"x": cat, "y": "Count"})
             fig5.update_traces(textposition="outside")
-
             st.plotly_chart(fig5, key="bar")
-
             st.markdown("#### 📌 Explanation")
-            st.write(f"""
-            X-axis → {cat}  
-            Y-axis → Count  
+            st.write(f"X-axis → {cat} | Y-axis → Count\n\nShows top categories → helps segmentation.")
 
-            Shows top categories → helps segmentation.
-            """)
-
-        # HISTOGRAM
         st.markdown(f"### 🔹 Distribution ({x})")
-
         fig3 = px.histogram(df, x=x, text_auto=True)
         st.plotly_chart(fig3, key="hist")
-
         st.markdown("#### 📌 Explanation")
-        st.write(f"""
-        X-axis → {x}  
-        Y-axis → Frequency  
+        st.write(f"X-axis → {x} | Y-axis → Frequency\n\nShows distribution & spread of values.")
 
-        Shows distribution & spread of values.
-        """)
-
- # ---------------- REGRESSION ----------------
+        # ---------------- REGRESSION ----------------
         st.subheader("📈 Regression Analysis")
-
-        from sklearn.linear_model import LinearRegression
-        from sklearn.model_selection import train_test_split
-        from sklearn.metrics import r2_score
 
         X = df[[x]]
         Y = df[y]
-
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
-
         model = LinearRegression()
         model.fit(X_train, Y_train)
-
         preds = model.predict(X_test)
         score = r2_score(Y_test, preds)
 
-        st.success(f"Accuracy (R²): {round(score,2)}")
+        # ✅ FIXED: Handle negative R²
+        if score < 0:
+            st.info("📊 R² Score: N/A — Dataset is too small for reliable regression. More data needed for accurate predictions.")
+        else:
+            st.success(f"✅ Accuracy (R²): {round(score, 2)}")
 
         fig_reg = px.scatter(df, x=x, y=y)
         fig_reg.add_traces(px.line(x=X_test[x], y=preds).data)
         st.plotly_chart(fig_reg, key="reg")
 
         st.markdown("#### 📌 Explanation")
-        st.write(f"""
-        Regression predicts {y} based on {x}.  
-        R² score shows model accuracy.
-        """)
+        st.write(f"Regression predicts {y} based on {x}.\nR² score shows model accuracy.")
 
 # ================= AI CHART GENERATOR =================
-
 if df is not None:
 
     st.subheader("📊 AI Chart Developer")
 
-    chart_type = st.selectbox(
-        "Select Chart Type",
-        ["Bar Chart", "Line Chart", "Scatter Plot", "Pie Chart"]
-    )
-
+    chart_type = st.selectbox("Select Chart Type", ["Bar Chart", "Line Chart", "Scatter Plot", "Pie Chart"])
     all_cols = df.columns.tolist()
-
     x_col = st.selectbox("Select X-axis", all_cols)
     y_col = st.selectbox("Select Y-axis", all_cols)
-
     top_n = st.selectbox("Top values", [5, 7, 10])
 
     if st.button("Generate Chart"):
-
         temp_df = df[[x_col, y_col]].dropna().head(top_n)
 
-        # -------- CREATE CHART --------
         if chart_type == "Bar Chart":
             fig = px.bar(temp_df, x=x_col, y=y_col)
-
         elif chart_type == "Line Chart":
             fig = px.line(temp_df, x=x_col, y=y_col, markers=True)
-
         elif chart_type == "Scatter Plot":
             fig = px.scatter(temp_df, x=x_col, y=y_col)
-
         elif chart_type == "Pie Chart":
             fig = px.pie(temp_df, names=x_col, values=y_col)
 
         st.plotly_chart(fig)
 
-        # ================= AI INSIGHT =================
         st.markdown("### 🤖 AI Chart Insight")
-
         try:
-
             if chart_type == "Pie Chart":
                 grouped = temp_df.groupby(x_col)[y_col].sum()
                 total = grouped.sum()
-
                 top_category = grouped.idxmax()
                 top_value = grouped.max()
                 percentage = (top_value / total) * 100
-
-                st.success(f"""
-🔍 Insight:
-
-• {top_category} contributes highest  
-• Share: {round(percentage,2)}%  
-
-👉 Dominant category
-""")
+                st.success(f"🔍 {top_category} contributes highest at {round(percentage,2)}% — Dominant category")
 
             elif chart_type == "Bar Chart":
                 grouped = temp_df.groupby(x_col)[y_col].sum().sort_values(ascending=False)
-
-                st.success(f"""
-🔍 Insight:
-
-• Highest: {grouped.index[0]}  
-• Lowest: {grouped.index[-1]}  
-
-👉 Clear variation across categories
-""")
+                st.success(f"🔍 Highest: {grouped.index[0]} | Lowest: {grouped.index[-1]} — Clear variation across categories")
 
             elif chart_type == "Line Chart":
                 trend = "increasing" if temp_df[y_col].iloc[-1] > temp_df[y_col].iloc[0] else "decreasing"
-
-                st.success(f"""
-🔍 Insight:
-
-• Trend is {trend}  
-
-👉 Shows movement over time
-""")
+                st.success(f"🔍 Trend is {trend} — Shows movement over time")
 
             elif chart_type == "Scatter Plot":
                 corr = temp_df[x_col].corr(temp_df[y_col])
-
-                st.success(f"""
-🔍 Insight:
-
-• Correlation: {round(corr,2)}  
-
-👉 Shows relationship strength
-""")
+                st.success(f"🔍 Correlation: {round(corr,2)} — Shows relationship strength")
 
         except Exception as e:
             st.warning(f"Insight error: {e}")
-            
-    
- # ---------------- STORYTELLING DASHBOARD ----------------
+
+# ---------------- STORYTELLING DASHBOARD ----------------
 if df is not None:
 
     st.markdown("---")
     st.subheader("📖 Storytelling Dashboard")
-
     st.markdown("### 🧠 Data Story Overview")
+    st.write(f"This dataset contains **{df.shape[0]} rows** and **{df.shape[1]} columns**. Relationship analyzed between **{x} and {y}**.")
 
-    st.write(f"""
-    This dataset contains **{df.shape[0]} rows** and **{df.shape[1]} columns**.  
-    Relationship analyzed between **{x} and {y}**.
-    """)
-
-    # ---------------- MAIN VISUALS ----------------
     col1, col2 = st.columns(2)
-
     with col1:
         fig_story1 = px.scatter(df, x=x, y=y, text=df[y].round(2))
         fig_story1.update_traces(textposition="top center")
         st.plotly_chart(fig_story1, use_container_width=True)
-
         st.write(f"🔍 {x} vs {y} → shows relationship and correlation pattern.")
 
     with col2:
         fig_story2 = px.line(df, y=y, markers=True)
         st.plotly_chart(fig_story2, use_container_width=True)
-
         st.write(f"📈 {y} trend → shows growth or decline behavior over dataset.")
 
-    # ---------------- DISTRIBUTION ----------------
     fig_story3 = px.histogram(df, x=x, text_auto=True)
     st.plotly_chart(fig_story3, use_container_width=True)
-
     st.write(f"📊 Distribution of {x} → shows spread and frequency of values.")
 
-    # ---------------- CATEGORY ANALYSIS ----------------
     if len(cat_cols) > 0:
         cat = cat_cols[0]
         top = df[cat].value_counts().head(5)
-
         fig_story4 = px.bar(x=top.index, y=top.values, text=top.values)
         fig_story4.update_traces(textposition="outside")
-
         st.plotly_chart(fig_story4, use_container_width=True)
-
         st.write(f"🏆 Top categories in {cat} → highlights most frequent values.")
 
-    # ---------------- AI GENERATED CHART ----------------
-    if "generated_chart" in st.session_state:
-
-        st.markdown("### 🤖 AI Generated Custom Chart")
-
-        st.plotly_chart(
-            st.session_state.generated_chart,
-            use_container_width=True
-        )
-
-        st.write("""
-This chart was created using the AI Chart Developer.
-
-📌 It allows custom analysis beyond default visuals  
-📌 Helps explore patterns based on user interest  
-📌 Makes the dashboard interactive and dynamic  
-
-👉 This is useful for deeper insights and better decision-making.
-""")
-        
 # ================= SMART AI INSIGHTS =================
 if df is not None:
 
@@ -647,39 +505,27 @@ if df is not None:
 
     try:
         insights = []
-
-        # Dataset overview
         insights.append(f"Dataset contains {df.shape[0]} rows and {df.shape[1]} columns.")
 
-        # Numeric insights
         num_cols = df.select_dtypes(include=np.number).columns
-
         if len(num_cols) > 0:
             col = num_cols[0]
-
             insights.append(f"Average value of {col} is {round(df[col].mean(),2)}.")
             insights.append(f"Maximum value of {col} is {df[col].max()} indicating peak performance.")
-
-            # Outliers
             q1 = df[col].quantile(0.25)
             q3 = df[col].quantile(0.75)
             iqr = q3 - q1
             outliers = df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
-
             insights.append(f"{len(outliers)} potential outliers detected in {col}.")
 
-        # Category insights
         cat_cols = df.select_dtypes(include="object").columns
-
         if len(cat_cols) > 0:
             cat = cat_cols[0]
             top_cat = df[cat].value_counts().idxmax()
             insights.append(f"Most frequent category in {cat} is '{top_cat}'.")
 
-        # Correlation insights
         if len(num_cols) >= 2:
             corr = df[num_cols[0]].corr(df[num_cols[1]])
-
             if corr > 0.7:
                 insights.append("Strong positive relationship between key variables.")
             elif corr < -0.7:
@@ -687,7 +533,6 @@ if df is not None:
             else:
                 insights.append("Moderate relationship observed between variables.")
 
-        # SHOW INSIGHTS
         for i in insights:
             st.success(f"✔ {i}")
 
@@ -702,30 +547,24 @@ if df is not None:
 
     num_cols = df.select_dtypes(include=np.number).columns
     cat_cols = df.select_dtypes(include="object").columns
-
     questions = []
 
-    # Numeric-based questions
     if len(num_cols) > 0:
         questions.append(f"What is the trend of {num_cols[0]}?")
         questions.append(f"Are there any outliers in {num_cols[0]}?")
         questions.append(f"What is the distribution of {num_cols[0]}?")
 
-    # Category-based questions
     if len(cat_cols) > 0:
         questions.append(f"What are top categories in {cat_cols[0]}?")
         questions.append(f"How does {cat_cols[0]} impact numeric values?")
 
-    # Correlation-based
     if len(num_cols) >= 2:
         questions.append(f"Is there a relationship between {num_cols[0]} and {num_cols[1]}?")
         questions.append(f"Which factor influences {num_cols[1]} the most?")
 
-    # Session state (IMPORTANT - prevents error)
     if "selected_q" not in st.session_state:
         st.session_state.selected_q = ""
 
-    # Display buttons
     for i, q in enumerate(questions):
         if st.button(f"👉 {q}", key=f"q_{i}"):
             st.session_state.selected_q = q
@@ -735,176 +574,60 @@ if df is not None:
 
     st.subheader("💬 Ask Anything About Your Data")
 
-    user_q = st.text_input(
-        "Ask your question",
-        value=st.session_state.get("selected_q", "")
-    )
+    user_q = st.text_input("Ask your question", value=st.session_state.get("selected_q", ""))
 
     def answer_question(q):
         q = q.lower()
-
         try:
-            # ---------------- TREND ----------------
             if "trend" in q:
                 col = num_cols[0]
                 trend = "increasing" if df[col].iloc[-1] > df[col].iloc[0] else "decreasing"
+                return f"📊 Trend Analysis of {col}\n\nThe variable shows a {trend} pattern across the dataset."
 
-                return f"""
-📊 Trend Analysis of {col}
-
-The variable shows a {trend} pattern across the dataset.
-
-This indicates how values are changing over time or observations.
-
-Conclusion:
-This helps identify growth or decline patterns and supports forecasting.
-"""
-
-            # ---------------- OUTLIERS ----------------
             elif "outlier" in q:
                 col = num_cols[0]
-
                 q1 = df[col].quantile(0.25)
                 q3 = df[col].quantile(0.75)
                 iqr = q3 - q1
-
                 outliers = df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)]
+                return f"Outlier Analysis for {col}\n\nTotal outliers detected: {len(outliers)}\n\n{outliers.head()}"
 
-                return f"""
-Outlier Analysis for {col}
-
-Total outliers detected: {len(outliers)}
-
-Outliers are extreme values that differ significantly from others.
-
-They may indicate:
-- Data errors
-- Rare events
-- Exceptional cases
-
-Recommendation:
-Investigate before making decisions.
-
-Sample:
-{outliers.head()}
-"""
-
-            # ---------------- DISTRIBUTION ----------------
             elif "distribution" in q:
                 col = num_cols[0]
+                return f"Distribution Analysis of {col}\n\nThe histogram shows how values are spread.\n\nNarrow spread → stable | Wide spread → high variability"
 
-                return f"""
-Distribution Analysis of {col}
-
-The histogram shows how values are spread.
-
-Insights:
-- Narrow spread → stable data
-- Wide spread → high variability
-
-Use this to understand consistency and risk.
-"""
-
-            # ---------------- TOP CATEGORIES ----------------
             elif "top" in q:
                 cat = cat_cols[0]
                 top = df[cat].value_counts().head(5)
+                return f"Top Categories in {cat}\n\n{top}"
 
-                return f"""
-Top Categories in {cat}
-
-{top}
-
-These categories appear most frequently.
-
-Use case:
-- Market trends
-- Customer behavior
-- Product popularity
-"""
-
-            # ---------------- IMPACT ----------------
             elif "impact" in q:
                 cat = cat_cols[0]
                 num = num_cols[0]
-
                 impact = df.groupby(cat)[num].mean().sort_values(ascending=False)
+                return f"Impact of {cat} on {num}\n\n{impact.head()}"
 
-                return f"""
-Impact of {cat} on {num}
-
-{impact.head()}
-
-Higher values indicate stronger influence.
-
-Helps identify high-performing categories.
-"""
-
-            # ---------------- RELATIONSHIP ----------------
             elif "relationship" in q:
                 x = num_cols[0]
                 y = num_cols[1]
-
                 corr = df[x].corr(df[y])
+                strength = "strong" if abs(corr) > 0.7 else "moderate" if abs(corr) > 0.4 else "weak"
+                return f"Relationship between {x} and {y}\n\nCorrelation: {round(corr,2)}\n\nThere is a {strength} relationship."
 
-                strength = (
-                    "strong" if abs(corr) > 0.7 else
-                    "moderate" if abs(corr) > 0.4 else
-                    "weak"
-                )
-
-                return f"""
-Relationship between {x} and {y}
-
-Correlation: {round(corr,2)}
-
-There is a {strength} relationship.
-
-Positive → both increase together  
-Negative → opposite movement  
-
-Useful for prediction and modeling.
-"""
-
-            # ---------------- INFLUENCE ----------------
             elif "influence" in q:
                 target = num_cols[1]
-
                 corr = df.corr(numeric_only=True)[target].sort_values(ascending=False)
+                return f"Feature Influence on {target}\n\n{corr}\n\nHigher correlation = stronger impact."
 
-                return f"""
-Feature Influence on {target}
-
-{corr}
-
-Higher correlation = stronger impact.
-
-Useful for identifying key drivers in data.
-"""
-
-            # ---------------- DEFAULT ----------------
             else:
-                return """
-Try asking:
-
-• Trend  
-• Outliers  
-• Top categories  
-• Relationship  
-• Impact  
-
-Or click recommended questions above 👆
-"""
+                return "Try asking: Trend | Outliers | Top categories | Relationship | Impact"
 
         except Exception as e:
             return f"Error: {e}"
 
-    # SHOW ANSWER
     if user_q:
         st.subheader("🤖 AI Answer")
-
         result = answer_question(user_q)
-
         if isinstance(result, str):
             st.info(result)
         else:
@@ -915,45 +638,26 @@ if df is not None:
 
     st.markdown("---")
     st.subheader("📊 AI Numerical Analyzer")
-
     st.write("Select a column to get full statistical analysis")
 
-    # NEW DROPDOWN (FIXED)
-    col_query = st.selectbox(
-        "Select column",
-        df.columns
-    )
+    col_query = st.selectbox("Select column", df.columns)
 
     if col_query:
-
         col = col_query
-
         if pd.api.types.is_numeric_dtype(df[col]):
-
             data = df[col]
-
-            mean_val = data.mean()
-            median_val = data.median()
-            mode_val = data.mode()[0]
-            std_val = data.std()
-            var_val = data.var()
-            min_val = data.min()
-            max_val = data.max()
-            count_val = data.count()
-
             st.success(f"📊 Analysis of '{col}'")
-
             st.markdown(f"""
 ### 🔢 Statistical Summary
 
-- **Count:** {count_val}  
-- **Mean:** {round(mean_val,2)}  
-- **Median:** {round(median_val,2)}  
-- **Mode:** {mode_val}  
-- **Standard Deviation:** {round(std_val,2)}  
-- **Variance:** {round(var_val,2)}  
-- **Minimum:** {min_val}  
-- **Maximum:** {max_val}  
+- **Count:** {data.count()}  
+- **Mean:** {round(data.mean(),2)}  
+- **Median:** {round(data.median(),2)}  
+- **Mode:** {data.mode()[0]}  
+- **Standard Deviation:** {round(data.std(),2)}  
+- **Variance:** {round(data.var(),2)}  
+- **Minimum:** {data.min()}  
+- **Maximum:** {data.max()}  
 
 ---
 
@@ -976,7 +680,5 @@ if df is not None:
 
 This helps understand distribution, variability, and decision-making patterns.
 """)
-
         else:
             st.warning("❌ Selected column is not numerical")
-            
