@@ -307,94 +307,47 @@ if df is not None:
     # ════════════════════════════════════════════════════════
     st.markdown('<div class="section-head">📊 Visual Analysis — Data Storytelling</div>', unsafe_allow_html=True)
 
-    # ── helper: smart explanation builder ──
+    # ── helper: compact bullet explanation ──
     def explain_chart(chart_type, x_col, y_col, df_ref, cat_col=None):
-        """Returns (why_chart, why_x, why_y, data_insight) as a styled HTML block."""
-
-        chart_reasons = {
-            "scatter": f"A <b>Scatter Plot</b> is chosen here because both <b>{x_col}</b> and <b>{y_col}</b> are numerical variables. It plots every single data point as a dot, making it perfect to visually detect whether the two variables move together (correlation), how tightly they cluster, and where outliers live. No other chart reveals the raw relationship between two continuous variables this clearly.",
-            "line":    f"A <b>Line Chart</b> is used because <b>{y_col}</b> is a continuous numerical value that changes across sequential records. Connecting points with a line makes it easy to follow the direction of change — is the value rising, falling, or fluctuating? It's the go-to chart for spotting trends and momentum over time or ordered data.",
-            "histogram": f"A <b>Histogram</b> is ideal here because we want to understand <b>how the values of {x_col} are distributed</b> across the dataset. Instead of showing individual points, it groups values into bins and counts how many fall in each. This reveals if the data is bell-shaped (normal), skewed left/right, or has multiple peaks — critical for understanding data quality and choosing the right model.",
-            "bar":     f"A <b>Bar Chart</b> is the best choice for <b>{cat_col}</b> because it is a categorical variable. Each bar represents one category, and the height shows how frequently it appears. Bar charts make it effortless to rank and compare categories — the tallest bar immediately tells you which segment dominates the dataset.",
-            "box":     f"A <b>Box Plot</b> is selected to show the <b>statistical spread of {x_col} broken down by {cat_col}</b>. It compresses five statistics into one shape — minimum, Q1, median, Q3, and maximum — and dots beyond the whiskers mark outliers. This is far more informative than just showing averages because it reveals how consistent or variable each group really is.",
-            "heatmap": f"A <b>Correlation Heatmap</b> is the most efficient way to see <b>all pairwise relationships between numerical columns at once</b>. Each cell shows the correlation coefficient (−1 to +1) between two variables, color-coded for quick reading. Bright cells mean strong relationships — these pairs are the most important for feature selection and predictive modeling.",
-            "area":    f"An <b>Area Chart</b> extends the line chart by filling the space below the line. It is used for <b>{x_col}</b> to emphasize the <b>magnitude and volume</b> of values over the record sequence — not just direction but the actual size of the signal. The filled area makes it easier to compare periods of high vs. low values at a glance.",
-            "pie":     f"A <b>Donut / Pie Chart</b> is used for <b>{cat_col}</b> to show <b>proportional share</b> — how much of the total each category accounts for. When the question is 'what percentage does each group make up?', a pie chart answers it instantly. The hole in the center (donut style) improves readability for labels.",
-            "regression": f"A <b>Regression Scatter with Fitted Line</b> is used to model the relationship between <b>{x_col}</b> (predictor) and <b>{y_col}</b> (target). The dots show real data; the line shows what the model predicts. The closer the dots hug the line, the stronger the predictive power. This is the foundation of understanding cause-and-effect in numerical data.",
-            "residuals": f"A <b>Residual Histogram</b> checks the <b>health of the regression model</b>. Residuals are the errors — the gap between what the model predicted and what actually happened. If the bars form a symmetric bell curve centered near zero, the model is unbiased and reliable. If it's skewed or has fat tails, the model is missing something important.",
+        bullets = {
+            "scatter":    [f"📊 <b>Why:</b> Both {x_col} & {y_col} are numerical → scatter shows correlation", f"📐 <b>X ({x_col}):</b> Independent variable (the cause)", f"📐 <b>Y ({y_col}):</b> Dependent variable (the effect)"],
+            "line":       [f"📊 <b>Why:</b> Tracks how {y_col} changes across ordered records", f"📐 <b>X:</b> Row index → record sequence (left = first, right = last)", f"📐 <b>Y ({y_col}):</b> Value being tracked — height = magnitude"],
+            "histogram":  [f"📊 <b>Why:</b> Shows how {x_col} values are spread across the dataset", f"📐 <b>X ({x_col}):</b> Value ranges grouped into bins", f"📐 <b>Y (Count):</b> How many records fall in each bin — tall bar = common value"],
+            "bar":        [f"📊 <b>Why:</b> {cat_col} is categorical → bar ranks segments by frequency", f"📐 <b>X ({cat_col}):</b> Each category as a separate bar", f"📐 <b>Y (Count):</b> Taller bar = more records in that segment"],
+            "box":        [f"📊 <b>Why:</b> Compares {x_col} spread across {cat_col} groups at once", f"📐 <b>X ({cat_col}):</b> One box per category for side-by-side comparison", f"📐 <b>Y ({x_col}):</b> Box height = variability; line = median; dots = outliers"],
+            "heatmap":    [f"📊 <b>Why:</b> Shows all pairwise correlations between numerical columns in one view", f"📐 <b>X & Y:</b> Same column names on both axes — each cell = correlation of that pair", f"📐 <b>Color:</b> Bright = strong relationship; dark = weak or negative"],
+            "area":       [f"📊 <b>Why:</b> Highlights volume & magnitude of {x_col} over record sequence", f"📐 <b>X:</b> Row index → sequential order of records", f"📐 <b>Y ({x_col}):</b> Filled area below the line emphasizes size, not just direction"],
+            "pie":        [f"📊 <b>Why:</b> Shows each {cat_col} category's share of the total", f"📐 <b>Slices:</b> One per category — bigger slice = larger proportion", f"📐 <b>Hole (donut):</b> Improves label readability vs. full pie"],
+            "regression": [f"📊 <b>Why:</b> Models {x_col} as predictor → {y_col} as target", f"📐 <b>X ({x_col}):</b> Input fed to the model (independent variable)", f"📐 <b>Y ({y_col}):</b> What the model predicts — closer dots to line = better fit"],
+            "residuals":  [f"📊 <b>Why:</b> Checks if the regression model has bias or errors", f"📐 <b>X (Residual):</b> Actual − Predicted; near zero = accurate prediction", f"📐 <b>Y (Count):</b> Bell curve centered at 0 = healthy model"],
         }
 
-        axis_reasons = {
-            "scatter":   (f"<b>X-axis → {x_col}:</b> Placed on X because it is the <b>independent variable</b> — the one we suspect drives or influences the outcome. By convention, the cause goes on the horizontal axis.", f"<b>Y-axis → {y_col}:</b> Placed on Y because it is the <b>dependent variable</b> — the outcome we are trying to understand or predict. We read 'as X increases, does Y go up or down?'"),
-            "line":      (f"<b>X-axis → Row Index:</b> The index represents the <b>sequence of records</b> — the natural order in which data was collected. This lets us read left-to-right as 'earlier to later'.", f"<b>Y-axis → {y_col}:</b> The value we are tracking over time. Height on the Y-axis directly encodes magnitude — taller = bigger value."),
-            "histogram": (f"<b>X-axis → {x_col}:</b> The value range is divided into equal-width bins along the X-axis. Each bin represents a range of values (e.g., 100–200, 200–300). This shows <b>where values tend to cluster</b>.", f"<b>Y-axis → Count:</b> The height of each bar shows how many records fall into that bin. A tall bar means many records have that value — <b>the peak is the most common value range</b>."),
-            "bar":       (f"<b>X-axis → {cat_col}:</b> Each category label sits on the X-axis. Categories are <b>discrete, non-ordered groups</b> — placing them horizontally makes comparison natural since we read left to right.", f"<b>Y-axis → Count / Frequency:</b> The height of each bar = how many records belong to that category. The <b>taller the bar, the more dominant that segment</b> is in your data."),
-            "box":       (f"<b>X-axis → {cat_col}:</b> Each group/category sits on the X-axis so we can <b>compare distributions side by side</b>. The horizontal separation makes it easy to see which group is wider (more variable) or taller (higher median).", f"<b>Y-axis → {x_col}:</b> The numerical value being measured. The <b>vertical spread of each box shows how much {x_col} varies within that category</b>. A tall box = high variability; a flat box = consistent values."),
-            "heatmap":   (f"<b>X-axis → Column Names:</b> Each column label on the X-axis represents one numerical feature.", f"<b>Y-axis → Column Names:</b> Same columns mirrored on Y. Each cell at the intersection shows the <b>correlation between that X and Y pair</b>. Diagonal cells are always 1.0 (a variable perfectly correlates with itself)."),
-            "area":      (f"<b>X-axis → Row Index:</b> The sequential record order — reads as a time-like progression from first to last record in the dataset.", f"<b>Y-axis → {x_col}:</b> The numerical value whose <b>volume is being visualized</b>. The filled area below makes it easy to see when values are high (large area) vs. low (small area)."),
-            "pie":       (f"<b>Slices → {cat_col} categories:</b> Each slice represents one category. The <b>angle and size of each slice</b> is proportional to its share of the total.", f"<b>Slice size → Record count:</b> A bigger slice = more records in that category. This lets you immediately see <b>which categories are major vs. minor players</b>."),
-            "regression":(f"<b>X-axis → {x_col}:</b> The <b>predictor (independent) variable</b>. We feed this into the model — 'given this value of {x_col}, what will {y_col} be?'", f"<b>Y-axis → {y_col}:</b> The <b>target (dependent) variable</b> — what we are predicting. The regression line shows the model's best guess for Y at each value of X."),
-            "residuals": (f"<b>X-axis → Residual Value:</b> The error for each prediction (actual − predicted). Values near <b>zero mean the model predicted correctly</b>. Large positive/negative values are big errors.", f"<b>Y-axis → Count:</b> How many predictions had that error size. A <b>tall central bar near zero</b> means most predictions were accurate."),
-        }
-
-        def data_insight_scatter(df_r, xc, yc):
+        def live_insight(ct, df_r, xc, yc, cc):
             try:
-                cr = df_r[xc].corr(df_r[yc])
-                direction = "positive" if cr > 0 else "negative"
-                strength = "strong" if abs(cr) > 0.7 else "moderate" if abs(cr) > 0.4 else "weak"
-                return f"📌 <b>Data says:</b> Correlation between <b>{xc}</b> and <b>{yc}</b> is <b>r = {round(cr, 3)}</b> — a <b>{strength} {direction} relationship</b>. {'As one goes up, the other tends to go up too.' if cr > 0 else 'As one goes up, the other tends to come down.'} {'This is strong enough to build a predictive model.' if abs(cr) > 0.6 else 'The relationship exists but other factors also play a role.'}"
-            except: return ""
+                if ct == "scatter":
+                    cr = round(df_r[xc].corr(df_r[yc]), 3)
+                    s = "strong" if abs(cr) > 0.7 else "moderate" if abs(cr) > 0.4 else "weak"
+                    d = "positive ↑" if cr > 0 else "negative ↓"
+                    return f"🔍 r = <b>{cr}</b> — <b>{s} {d}</b> relationship"
+                elif ct == "histogram":
+                    mean_v = round(df_r[xc].mean(), 2); skew_v = round(df_r[xc].skew(), 2)
+                    sk = "right-skewed ↗" if skew_v > 0.5 else "left-skewed ↙" if skew_v < -0.5 else "normal ≈"
+                    return f"🔍 Mean = <b>{mean_v}</b> · Shape is <b>{sk}</b>"
+                elif ct == "bar" and cc:
+                    vc = df_r[cc].value_counts(); top = vc.index[0]; pct = round(vc.iloc[0]/len(df_r)*100,1)
+                    return f"🔍 Top segment: <b>'{top}'</b> at <b>{pct}%</b> of dataset"
+                elif ct == "box" and cc:
+                    means = df_r.groupby(cc)[xc].mean().sort_values(ascending=False)
+                    return f"🔍 Highest avg: <b>'{means.index[0]}'</b> ({round(means.iloc[0],2)}) · Lowest: <b>'{means.index[-1]}'</b> ({round(means.iloc[-1],2)})"
+            except: pass
+            return ""
 
-        def data_insight_histogram(df_r, col):
-            try:
-                mean_v = round(df_r[col].mean(), 2)
-                std_v  = round(df_r[col].std(), 2)
-                skew_v = round(df_r[col].skew(), 2)
-                skew_label = "right-skewed (long tail toward higher values — a few very large values pull the mean up)" if skew_v > 0.5 else "left-skewed (long tail toward lower values)" if skew_v < -0.5 else "approximately normal (bell-shaped, balanced around the mean)"
-                return f"📌 <b>Data says:</b> <b>{col}</b> has a mean of <b>{mean_v}</b> and std dev of <b>{std_v}</b>. The distribution is <b>{skew_label}</b>. {'High std dev means values are spread widely — the dataset is diverse.' if std_v > mean_v * 0.3 else 'Low std dev means values cluster tightly around the mean — the dataset is consistent.'}"
-            except: return ""
+        rows = bullets.get(chart_type, [])
+        insight = live_insight(chart_type, df_ref, x_col, y_col, cat_col)
+        if insight: rows.append(insight)
 
-        def data_insight_bar(df_r, col):
-            try:
-                vc = df_r[col].value_counts()
-                top, top_n = vc.index[0], vc.iloc[0]
-                bot, bot_n = vc.index[-1], vc.iloc[-1]
-                pct = round(top_n / len(df_r) * 100, 1)
-                return f"📌 <b>Data says:</b> <b>'{top}'</b> is the most dominant category with <b>{top_n} records ({pct}% of dataset)</b>. <b>'{bot}'</b> is the least represented with only <b>{bot_n} records</b>. This imbalance {'is significant — models trained on this data may be biased toward the dominant class.' if pct > 50 else 'is moderate — the dataset has reasonable diversity across categories.'}"
-            except: return ""
-
-        def data_insight_box(df_r, num_c, cat_c):
-            try:
-                grp = df_r.groupby(cat_c)[num_c]
-                means = grp.mean().sort_values(ascending=False)
-                top_g = means.index[0]; top_mean = round(means.iloc[0], 2)
-                bot_g = means.index[-1]; bot_mean = round(means.iloc[-1], 2)
-                return f"📌 <b>Data says:</b> <b>'{top_g}'</b> has the highest average <b>{num_c}</b> at <b>{top_mean}</b>, while <b>'{bot_g}'</b> has the lowest at <b>{bot_mean}</b>. The gap of <b>{round(top_mean - bot_mean, 2)}</b> shows {'a significant performance difference between categories — worth investigating why.' if abs(top_mean - bot_mean) > df_r[num_c].std() else 'a moderate difference — categories are relatively similar in this metric.'}"
-            except: return ""
-
-        # pick which explanation set to use
-        why = chart_reasons.get(chart_type, "")
-        ax  = axis_reasons.get(chart_type, ("", ""))
-
-        if chart_type == "scatter":   insight = data_insight_scatter(df_ref, x_col, y_col)
-        elif chart_type in ["histogram", "area"]: insight = data_insight_histogram(df_ref, x_col)
-        elif chart_type == "bar":     insight = data_insight_bar(df_ref, cat_col)
-        elif chart_type == "box":     insight = data_insight_box(df_ref, x_col, cat_col)
-        else: insight = ""
-
-        html = f"""
-        <div style='background:rgba(22,4,37,0.6);border:1px solid rgba(102,103,171,0.2);border-radius:12px;padding:14px 16px;margin-top:8px;margin-bottom:4px;'>
-            <div style='font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#6667AB;font-weight:600;margin-bottom:10px;'>📖 Chart Explanation</div>
-            <div style='font-size:12px;color:rgba(245,213,224,0.75);line-height:1.7;margin-bottom:10px;'>{why}</div>
-            <div style='border-top:1px solid rgba(102,103,171,0.15);padding-top:10px;margin-bottom:8px;'>
-                <div style='font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#7B337E;font-weight:600;margin-bottom:7px;'>⚙ Axis Choices</div>
-                <div style='font-size:11px;color:rgba(245,213,224,0.65);line-height:1.7;margin-bottom:4px;'>{ax[0]}</div>
-                <div style='font-size:11px;color:rgba(245,213,224,0.65);line-height:1.7;'>{ax[1]}</div>
-            </div>
-            {"<div style='border-top:1px solid rgba(102,103,171,0.15);padding-top:10px;'><div style='font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#9B59B6;font-weight:600;margin-bottom:6px;'>🔍 What Your Data Reveals</div><div style='font-size:12px;color:rgba(245,213,224,0.8);line-height:1.7;'>" + insight + "</div></div>" if insight else ""}
-        </div>
-        """
-        return html
+        items = "".join(f"<li style='margin-bottom:5px;color:rgba(245,213,224,0.75);font-size:11.5px;'>{r}</li>" for r in rows)
+        return f"<ul style='margin:6px 0 10px 0;padding-left:18px;list-style:disc;'>{items}</ul>"
 
     if len(num_cols) >= 2:
         x, y = num_cols[0], num_cols[1]
@@ -556,12 +509,7 @@ if df is not None:
             fig_reg.update_layout(**PLOT_LAYOUT, height=260, title=f"Regression: {x} → {y}")
             st.plotly_chart(fig_reg, use_container_width=True, key="reg1")
 
-            reg_exp = explain_chart("regression", x, y, df)
-            reg_exp_full = reg_exp.replace(
-                "📖 Chart Explanation",
-                f"📖 Regression Explanation — R² = {round(score,4)} ({'Strong fit' if score>0.7 else 'Moderate fit' if score>0.4 else 'Weak fit — more features needed'})"
-            )
-            st.markdown(reg_exp_full, unsafe_allow_html=True)
+            st.markdown(explain_chart("regression", x, y, df), unsafe_allow_html=True)
 
         with reg_c2:
             st.markdown(f'<div class="story-chart-title">⑪ Residuals — Model Error Check</div>', unsafe_allow_html=True)
@@ -572,14 +520,10 @@ if df is not None:
 
             res_std = round(float(np.std(residuals)), 3)
             res_mean = round(float(np.mean(residuals)), 3)
-            res_skew = "symmetric ✅" if abs(res_mean) < res_std * 0.1 else "skewed ⚠️ — model has systematic bias"
-            res_html = explain_chart("residuals", x, y, df)
-            res_html_extra = res_html.replace(
-                "</div></div>",
-                f"<br><br>📌 <b>Your residuals:</b> Mean error = <b>{res_mean}</b> · Std = <b>{res_std}</b> · Shape is <b>{res_skew}</b></div></div>",
-                1
-            )
-            st.markdown(res_html_extra, unsafe_allow_html=True)
+            res_label = "symmetric ✅" if abs(res_mean) < res_std * 0.1 else "skewed ⚠️ bias detected"
+            res_bullets = explain_chart("residuals", x, y, df)
+            res_bullets += f"<ul style='margin:0 0 10px 0;padding-left:18px;list-style:disc;'><li style='margin-bottom:5px;color:rgba(245,213,224,0.75);font-size:11.5px;'>🔍 Mean error = <b>{res_mean}</b> · Std = <b>{res_std}</b> · Shape: <b>{res_label}</b></li></ul>"
+            st.markdown(res_bullets, unsafe_allow_html=True)
 
     st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
 
