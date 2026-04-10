@@ -307,69 +307,189 @@ if df is not None:
     # ════════════════════════════════════════════════════════
     st.markdown('<div class="section-head">📊 Visual Analysis — Data Storytelling</div>', unsafe_allow_html=True)
 
+    # ── helper: smart explanation builder ──
+    def explain_chart(chart_type, x_col, y_col, df_ref, cat_col=None):
+        """Returns (why_chart, why_x, why_y, data_insight) as a styled HTML block."""
+
+        chart_reasons = {
+            "scatter": f"A <b>Scatter Plot</b> is chosen here because both <b>{x_col}</b> and <b>{y_col}</b> are numerical variables. It plots every single data point as a dot, making it perfect to visually detect whether the two variables move together (correlation), how tightly they cluster, and where outliers live. No other chart reveals the raw relationship between two continuous variables this clearly.",
+            "line":    f"A <b>Line Chart</b> is used because <b>{y_col}</b> is a continuous numerical value that changes across sequential records. Connecting points with a line makes it easy to follow the direction of change — is the value rising, falling, or fluctuating? It's the go-to chart for spotting trends and momentum over time or ordered data.",
+            "histogram": f"A <b>Histogram</b> is ideal here because we want to understand <b>how the values of {x_col} are distributed</b> across the dataset. Instead of showing individual points, it groups values into bins and counts how many fall in each. This reveals if the data is bell-shaped (normal), skewed left/right, or has multiple peaks — critical for understanding data quality and choosing the right model.",
+            "bar":     f"A <b>Bar Chart</b> is the best choice for <b>{cat_col}</b> because it is a categorical variable. Each bar represents one category, and the height shows how frequently it appears. Bar charts make it effortless to rank and compare categories — the tallest bar immediately tells you which segment dominates the dataset.",
+            "box":     f"A <b>Box Plot</b> is selected to show the <b>statistical spread of {x_col} broken down by {cat_col}</b>. It compresses five statistics into one shape — minimum, Q1, median, Q3, and maximum — and dots beyond the whiskers mark outliers. This is far more informative than just showing averages because it reveals how consistent or variable each group really is.",
+            "heatmap": f"A <b>Correlation Heatmap</b> is the most efficient way to see <b>all pairwise relationships between numerical columns at once</b>. Each cell shows the correlation coefficient (−1 to +1) between two variables, color-coded for quick reading. Bright cells mean strong relationships — these pairs are the most important for feature selection and predictive modeling.",
+            "area":    f"An <b>Area Chart</b> extends the line chart by filling the space below the line. It is used for <b>{x_col}</b> to emphasize the <b>magnitude and volume</b> of values over the record sequence — not just direction but the actual size of the signal. The filled area makes it easier to compare periods of high vs. low values at a glance.",
+            "pie":     f"A <b>Donut / Pie Chart</b> is used for <b>{cat_col}</b> to show <b>proportional share</b> — how much of the total each category accounts for. When the question is 'what percentage does each group make up?', a pie chart answers it instantly. The hole in the center (donut style) improves readability for labels.",
+            "regression": f"A <b>Regression Scatter with Fitted Line</b> is used to model the relationship between <b>{x_col}</b> (predictor) and <b>{y_col}</b> (target). The dots show real data; the line shows what the model predicts. The closer the dots hug the line, the stronger the predictive power. This is the foundation of understanding cause-and-effect in numerical data.",
+            "residuals": f"A <b>Residual Histogram</b> checks the <b>health of the regression model</b>. Residuals are the errors — the gap between what the model predicted and what actually happened. If the bars form a symmetric bell curve centered near zero, the model is unbiased and reliable. If it's skewed or has fat tails, the model is missing something important.",
+        }
+
+        axis_reasons = {
+            "scatter":   (f"<b>X-axis → {x_col}:</b> Placed on X because it is the <b>independent variable</b> — the one we suspect drives or influences the outcome. By convention, the cause goes on the horizontal axis.", f"<b>Y-axis → {y_col}:</b> Placed on Y because it is the <b>dependent variable</b> — the outcome we are trying to understand or predict. We read 'as X increases, does Y go up or down?'"),
+            "line":      (f"<b>X-axis → Row Index:</b> The index represents the <b>sequence of records</b> — the natural order in which data was collected. This lets us read left-to-right as 'earlier to later'.", f"<b>Y-axis → {y_col}:</b> The value we are tracking over time. Height on the Y-axis directly encodes magnitude — taller = bigger value."),
+            "histogram": (f"<b>X-axis → {x_col}:</b> The value range is divided into equal-width bins along the X-axis. Each bin represents a range of values (e.g., 100–200, 200–300). This shows <b>where values tend to cluster</b>.", f"<b>Y-axis → Count:</b> The height of each bar shows how many records fall into that bin. A tall bar means many records have that value — <b>the peak is the most common value range</b>."),
+            "bar":       (f"<b>X-axis → {cat_col}:</b> Each category label sits on the X-axis. Categories are <b>discrete, non-ordered groups</b> — placing them horizontally makes comparison natural since we read left to right.", f"<b>Y-axis → Count / Frequency:</b> The height of each bar = how many records belong to that category. The <b>taller the bar, the more dominant that segment</b> is in your data."),
+            "box":       (f"<b>X-axis → {cat_col}:</b> Each group/category sits on the X-axis so we can <b>compare distributions side by side</b>. The horizontal separation makes it easy to see which group is wider (more variable) or taller (higher median).", f"<b>Y-axis → {x_col}:</b> The numerical value being measured. The <b>vertical spread of each box shows how much {x_col} varies within that category</b>. A tall box = high variability; a flat box = consistent values."),
+            "heatmap":   (f"<b>X-axis → Column Names:</b> Each column label on the X-axis represents one numerical feature.", f"<b>Y-axis → Column Names:</b> Same columns mirrored on Y. Each cell at the intersection shows the <b>correlation between that X and Y pair</b>. Diagonal cells are always 1.0 (a variable perfectly correlates with itself)."),
+            "area":      (f"<b>X-axis → Row Index:</b> The sequential record order — reads as a time-like progression from first to last record in the dataset.", f"<b>Y-axis → {x_col}:</b> The numerical value whose <b>volume is being visualized</b>. The filled area below makes it easy to see when values are high (large area) vs. low (small area)."),
+            "pie":       (f"<b>Slices → {cat_col} categories:</b> Each slice represents one category. The <b>angle and size of each slice</b> is proportional to its share of the total.", f"<b>Slice size → Record count:</b> A bigger slice = more records in that category. This lets you immediately see <b>which categories are major vs. minor players</b>."),
+            "regression":(f"<b>X-axis → {x_col}:</b> The <b>predictor (independent) variable</b>. We feed this into the model — 'given this value of {x_col}, what will {y_col} be?'", f"<b>Y-axis → {y_col}:</b> The <b>target (dependent) variable</b> — what we are predicting. The regression line shows the model's best guess for Y at each value of X."),
+            "residuals": (f"<b>X-axis → Residual Value:</b> The error for each prediction (actual − predicted). Values near <b>zero mean the model predicted correctly</b>. Large positive/negative values are big errors.", f"<b>Y-axis → Count:</b> How many predictions had that error size. A <b>tall central bar near zero</b> means most predictions were accurate."),
+        }
+
+        def data_insight_scatter(df_r, xc, yc):
+            try:
+                cr = df_r[xc].corr(df_r[yc])
+                direction = "positive" if cr > 0 else "negative"
+                strength = "strong" if abs(cr) > 0.7 else "moderate" if abs(cr) > 0.4 else "weak"
+                return f"📌 <b>Data says:</b> Correlation between <b>{xc}</b> and <b>{yc}</b> is <b>r = {round(cr, 3)}</b> — a <b>{strength} {direction} relationship</b>. {'As one goes up, the other tends to go up too.' if cr > 0 else 'As one goes up, the other tends to come down.'} {'This is strong enough to build a predictive model.' if abs(cr) > 0.6 else 'The relationship exists but other factors also play a role.'}"
+            except: return ""
+
+        def data_insight_histogram(df_r, col):
+            try:
+                mean_v = round(df_r[col].mean(), 2)
+                std_v  = round(df_r[col].std(), 2)
+                skew_v = round(df_r[col].skew(), 2)
+                skew_label = "right-skewed (long tail toward higher values — a few very large values pull the mean up)" if skew_v > 0.5 else "left-skewed (long tail toward lower values)" if skew_v < -0.5 else "approximately normal (bell-shaped, balanced around the mean)"
+                return f"📌 <b>Data says:</b> <b>{col}</b> has a mean of <b>{mean_v}</b> and std dev of <b>{std_v}</b>. The distribution is <b>{skew_label}</b>. {'High std dev means values are spread widely — the dataset is diverse.' if std_v > mean_v * 0.3 else 'Low std dev means values cluster tightly around the mean — the dataset is consistent.'}"
+            except: return ""
+
+        def data_insight_bar(df_r, col):
+            try:
+                vc = df_r[col].value_counts()
+                top, top_n = vc.index[0], vc.iloc[0]
+                bot, bot_n = vc.index[-1], vc.iloc[-1]
+                pct = round(top_n / len(df_r) * 100, 1)
+                return f"📌 <b>Data says:</b> <b>'{top}'</b> is the most dominant category with <b>{top_n} records ({pct}% of dataset)</b>. <b>'{bot}'</b> is the least represented with only <b>{bot_n} records</b>. This imbalance {'is significant — models trained on this data may be biased toward the dominant class.' if pct > 50 else 'is moderate — the dataset has reasonable diversity across categories.'}"
+            except: return ""
+
+        def data_insight_box(df_r, num_c, cat_c):
+            try:
+                grp = df_r.groupby(cat_c)[num_c]
+                means = grp.mean().sort_values(ascending=False)
+                top_g = means.index[0]; top_mean = round(means.iloc[0], 2)
+                bot_g = means.index[-1]; bot_mean = round(means.iloc[-1], 2)
+                return f"📌 <b>Data says:</b> <b>'{top_g}'</b> has the highest average <b>{num_c}</b> at <b>{top_mean}</b>, while <b>'{bot_g}'</b> has the lowest at <b>{bot_mean}</b>. The gap of <b>{round(top_mean - bot_mean, 2)}</b> shows {'a significant performance difference between categories — worth investigating why.' if abs(top_mean - bot_mean) > df_r[num_c].std() else 'a moderate difference — categories are relatively similar in this metric.'}"
+            except: return ""
+
+        # pick which explanation set to use
+        why = chart_reasons.get(chart_type, "")
+        ax  = axis_reasons.get(chart_type, ("", ""))
+
+        if chart_type == "scatter":   insight = data_insight_scatter(df_ref, x_col, y_col)
+        elif chart_type in ["histogram", "area"]: insight = data_insight_histogram(df_ref, x_col)
+        elif chart_type == "bar":     insight = data_insight_bar(df_ref, cat_col)
+        elif chart_type == "box":     insight = data_insight_box(df_ref, x_col, cat_col)
+        else: insight = ""
+
+        html = f"""
+        <div style='background:rgba(22,4,37,0.6);border:1px solid rgba(102,103,171,0.2);border-radius:12px;padding:14px 16px;margin-top:8px;margin-bottom:4px;'>
+            <div style='font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#6667AB;font-weight:600;margin-bottom:10px;'>📖 Chart Explanation</div>
+            <div style='font-size:12px;color:rgba(245,213,224,0.75);line-height:1.7;margin-bottom:10px;'>{why}</div>
+            <div style='border-top:1px solid rgba(102,103,171,0.15);padding-top:10px;margin-bottom:8px;'>
+                <div style='font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#7B337E;font-weight:600;margin-bottom:7px;'>⚙ Axis Choices</div>
+                <div style='font-size:11px;color:rgba(245,213,224,0.65);line-height:1.7;margin-bottom:4px;'>{ax[0]}</div>
+                <div style='font-size:11px;color:rgba(245,213,224,0.65);line-height:1.7;'>{ax[1]}</div>
+            </div>
+            {"<div style='border-top:1px solid rgba(102,103,171,0.15);padding-top:10px;'><div style='font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#9B59B6;font-weight:600;margin-bottom:6px;'>🔍 What Your Data Reveals</div><div style='font-size:12px;color:rgba(245,213,224,0.8);line-height:1.7;'>" + insight + "</div></div>" if insight else ""}
+        </div>
+        """
+        return html
+
     if len(num_cols) >= 2:
         x, y = num_cols[0], num_cols[1]
 
-        # ── Row 1: Scatter + Line + Histogram side by side ──
+        # ══════════════════════════════
+        # ROW 1 — Scatter · Line · Histogram(x)
+        # ══════════════════════════════
+        st.markdown("""
+        <div style='font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(102,103,171,0.6);margin-bottom:12px;margin-top:4px;'>
+        ── Row 1 · Relationship & Distribution
+        </div>""", unsafe_allow_html=True)
+
         r1c1, r1c2, r1c3 = st.columns(3)
 
         with r1c1:
-            st.markdown(f'<div class="story-chart-title">Scatter — {x} vs {y}</div><div class="story-chart-note">Correlation & relationship strength</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="story-chart-title">① Scatter — {x} vs {y}</div>', unsafe_allow_html=True)
             fig1 = px.scatter(df, x=x, y=y, color_discrete_sequence=[COLORS[0]])
             fig1.update_layout(**PLOT_LAYOUT, height=220)
             fig1.update_traces(marker=dict(size=5, opacity=0.75))
             st.plotly_chart(fig1, use_container_width=True, key="sc1")
+            st.markdown(explain_chart("scatter", x, y, df), unsafe_allow_html=True)
 
         with r1c2:
-            st.markdown(f'<div class="story-chart-title">Trend — {y} over Index</div><div class="story-chart-note">Growth / decline patterns</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="story-chart-title">② Trend Line — {y} over Records</div>', unsafe_allow_html=True)
             fig2 = px.line(df, y=y, markers=False, color_discrete_sequence=[COLORS[1]])
             fig2.update_layout(**PLOT_LAYOUT, height=220)
             fig2.update_traces(line=dict(width=2))
             st.plotly_chart(fig2, use_container_width=True, key="ln1")
+            st.markdown(explain_chart("line", x, y, df), unsafe_allow_html=True)
 
         with r1c3:
-            st.markdown(f'<div class="story-chart-title">Distribution — {x}</div><div class="story-chart-note">Frequency spread & variability</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="story-chart-title">③ Histogram — {x} Distribution</div>', unsafe_allow_html=True)
             fig3 = px.histogram(df, x=x, color_discrete_sequence=[COLORS[0]], nbins=20)
             fig3.update_layout(**PLOT_LAYOUT, height=220)
             st.plotly_chart(fig3, use_container_width=True, key="hi1")
+            st.markdown(explain_chart("histogram", x, y, df), unsafe_allow_html=True)
 
-        # ── Row 2: Category Bar + Box Plot + Violin ──
+        st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
+
+        # ══════════════════════════════
+        # ROW 2 — Category Bar · Box Plot · Histogram(y)
+        # ══════════════════════════════
+        st.markdown("""
+        <div style='font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(102,103,171,0.6);margin-bottom:12px;'>
+        ── Row 2 · Category Breakdown & Spread
+        </div>""", unsafe_allow_html=True)
+
         r2c1, r2c2, r2c3 = st.columns(3)
 
         with r2c1:
             if len(cat_cols) > 0:
                 top_cats = df[cat_cols[0]].value_counts().nlargest(7)
-                st.markdown(f'<div class="story-chart-title">Category — {cat_cols[0]}</div><div class="story-chart-note">Top segments by frequency</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="story-chart-title">④ Bar — Top {cat_cols[0]} Segments</div>', unsafe_allow_html=True)
                 fig4 = px.bar(x=top_cats.index, y=top_cats.values, color_discrete_sequence=[COLORS[1]], text_auto=True)
                 fig4.update_layout(**PLOT_LAYOUT, height=220)
                 fig4.update_traces(marker_line_width=0)
                 st.plotly_chart(fig4, use_container_width=True, key="br1")
+                st.markdown(explain_chart("bar", x, y, df, cat_cols[0]), unsafe_allow_html=True)
 
         with r2c2:
             if len(cat_cols) > 0:
-                st.markdown(f'<div class="story-chart-title">Box Plot — {x} by {cat_cols[0]}</div><div class="story-chart-note">Spread, median & outliers per group</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="story-chart-title">⑤ Box Plot — {x} by {cat_cols[0]}</div>', unsafe_allow_html=True)
                 top7 = df[cat_cols[0]].value_counts().nlargest(7).index
                 df_box = df[df[cat_cols[0]].isin(top7)]
                 fig_box = px.box(df_box, x=cat_cols[0], y=x, color_discrete_sequence=[COLORS[0]])
                 fig_box.update_layout(**PLOT_LAYOUT, height=220)
                 st.plotly_chart(fig_box, use_container_width=True, key="bx1")
+                st.markdown(explain_chart("box", x, y, df_box, cat_cols[0]), unsafe_allow_html=True)
             else:
-                st.markdown(f'<div class="story-chart-title">Box Plot — {x}</div><div class="story-chart-note">Spread & outlier detection</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="story-chart-title">⑤ Box Plot — {x}</div>', unsafe_allow_html=True)
                 fig_box = px.box(df, y=x, color_discrete_sequence=[COLORS[0]])
                 fig_box.update_layout(**PLOT_LAYOUT, height=220)
                 st.plotly_chart(fig_box, use_container_width=True, key="bx1")
 
         with r2c3:
-            st.markdown(f'<div class="story-chart-title">Distribution — {y}</div><div class="story-chart-note">Value spread of second variable</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="story-chart-title">⑥ Histogram — {y} Distribution</div>', unsafe_allow_html=True)
             fig_hist2 = px.histogram(df, x=y, color_discrete_sequence=[COLORS[4]], nbins=20)
             fig_hist2.update_layout(**PLOT_LAYOUT, height=220)
             st.plotly_chart(fig_hist2, use_container_width=True, key="hi2")
+            st.markdown(explain_chart("histogram", y, x, df), unsafe_allow_html=True)
 
-        # ── Row 3: Heatmap (correlation matrix) + Area Chart + Pie ──
+        st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
+
+        # ══════════════════════════════
+        # ROW 3 — Heatmap · Area · Pie
+        # ══════════════════════════════
+        st.markdown("""
+        <div style='font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(102,103,171,0.6);margin-bottom:12px;'>
+        ── Row 3 · Correlations & Proportions
+        </div>""", unsafe_allow_html=True)
+
         r3c1, r3c2, r3c3 = st.columns(3)
 
         with r3c1:
-            st.markdown('<div class="story-chart-title">Correlation Heatmap</div><div class="story-chart-note">Pairwise variable relationships</div>', unsafe_allow_html=True)
+            st.markdown('<div class="story-chart-title">⑦ Correlation Heatmap — All Variables</div>', unsafe_allow_html=True)
             corr_df = df[num_cols[:6]].corr() if len(num_cols) >= 2 else df[num_cols].corr()
             fig_heat = go.Figure(data=go.Heatmap(
                 z=corr_df.values,
@@ -383,17 +503,19 @@ if df is not None:
             ))
             fig_heat.update_layout(**PLOT_LAYOUT, height=220)
             st.plotly_chart(fig_heat, use_container_width=True, key="ht1")
+            st.markdown(explain_chart("heatmap", x, y, df), unsafe_allow_html=True)
 
         with r3c2:
-            st.markdown(f'<div class="story-chart-title">Area Chart — {x}</div><div class="story-chart-note">Cumulative trend over observations</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="story-chart-title">⑧ Area Chart — {x} Volume</div>', unsafe_allow_html=True)
             fig_area = px.area(df.head(100), y=x, color_discrete_sequence=[COLORS[1]])
             fig_area.update_layout(**PLOT_LAYOUT, height=220)
             fig_area.update_traces(line=dict(width=1.5), fillcolor="rgba(102,103,171,0.18)")
             st.plotly_chart(fig_area, use_container_width=True, key="ar1")
+            st.markdown(explain_chart("area", x, y, df), unsafe_allow_html=True)
 
         with r3c3:
             if len(cat_cols) > 0:
-                st.markdown(f'<div class="story-chart-title">Pie — {cat_cols[0]} Share</div><div class="story-chart-note">Proportional segment breakdown</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="story-chart-title">⑨ Donut Pie — {cat_cols[0]} Share</div>', unsafe_allow_html=True)
                 pie_data = df[cat_cols[0]].value_counts().nlargest(6)
                 fig_pie = px.pie(values=pie_data.values, names=pie_data.index,
                                  color_discrete_sequence=COLORS, hole=0.45)
@@ -401,9 +523,16 @@ if df is not None:
                                       legend=dict(font=dict(size=9), orientation="v"))
                 fig_pie.update_traces(textfont_size=9)
                 st.plotly_chart(fig_pie, use_container_width=True, key="pi1")
+                st.markdown(explain_chart("pie", x, y, df, cat_cols[0]), unsafe_allow_html=True)
 
-        # ── Row 4: Regression full width ──
+        # ══════════════════════════════
+        # ROW 4 — Regression + Residuals
+        # ══════════════════════════════
         st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
+        st.markdown("""
+        <div style='font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(102,103,171,0.6);margin-bottom:12px;'>
+        ── Row 4 · Predictive Modelling
+        </div>""", unsafe_allow_html=True)
         st.markdown('<div class="section-head">📈 Regression Analysis</div>', unsafe_allow_html=True)
 
         X_r = df[[x]]; Y_r = df[y]
@@ -420,20 +549,37 @@ if df is not None:
             else:
                 st.success(f"✅ R² Accuracy: **{round(score, 4)}** — Model explains **{round(score*100,1)}%** of variance")
 
+            st.markdown(f'<div class="story-chart-title">⑩ Regression — {x} predicts {y}</div>', unsafe_allow_html=True)
             fig_reg = px.scatter(df, x=x, y=y, color_discrete_sequence=[COLORS[0]], opacity=0.5)
             fig_reg.add_trace(go.Scatter(x=Xte[x], y=preds, mode="lines", name="Regression Line",
                                           line=dict(color="#6667AB", width=2.5)))
             fig_reg.update_layout(**PLOT_LAYOUT, height=260, title=f"Regression: {x} → {y}")
             st.plotly_chart(fig_reg, use_container_width=True, key="reg1")
 
+            reg_exp = explain_chart("regression", x, y, df)
+            reg_exp_full = reg_exp.replace(
+                "📖 Chart Explanation",
+                f"📖 Regression Explanation — R² = {round(score,4)} ({'Strong fit' if score>0.7 else 'Moderate fit' if score>0.4 else 'Weak fit — more features needed'})"
+            )
+            st.markdown(reg_exp_full, unsafe_allow_html=True)
+
         with reg_c2:
-            st.markdown(f'<div class="story-chart-title">Residuals</div><div class="story-chart-note">Prediction error distribution</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="story-chart-title">⑪ Residuals — Model Error Check</div>', unsafe_allow_html=True)
             residuals = Yte.values - preds
-            fig_res = px.histogram(x=residuals, nbins=20,
-                                   color_discrete_sequence=[COLORS[4]])
-            fig_res.update_layout(**PLOT_LAYOUT, height=260,
-                                  xaxis_title="Residual", yaxis_title="Count")
+            fig_res = px.histogram(x=residuals, nbins=20, color_discrete_sequence=[COLORS[4]])
+            fig_res.update_layout(**PLOT_LAYOUT, height=260, xaxis_title="Residual", yaxis_title="Count")
             st.plotly_chart(fig_res, use_container_width=True, key="res1")
+
+            res_std = round(float(np.std(residuals)), 3)
+            res_mean = round(float(np.mean(residuals)), 3)
+            res_skew = "symmetric ✅" if abs(res_mean) < res_std * 0.1 else "skewed ⚠️ — model has systematic bias"
+            res_html = explain_chart("residuals", x, y, df)
+            res_html_extra = res_html.replace(
+                "</div></div>",
+                f"<br><br>📌 <b>Your residuals:</b> Mean error = <b>{res_mean}</b> · Std = <b>{res_std}</b> · Shape is <b>{res_skew}</b></div></div>",
+                1
+            )
+            st.markdown(res_html_extra, unsafe_allow_html=True)
 
     st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
 
@@ -580,4 +726,3 @@ if df is not None:
         st.markdown(f'<div class="insight-row" style="margin-top:12px;">📌 Distribution is <b>{skew_note}</b>. Std Dev of <b>{round(d.std(),2)}</b> indicates {"low variability — stable data." if d.std() < d.mean()*0.3 else "high variability."}</div>', unsafe_allow_html=True)
     elif col_q2:
         st.warning("⚠️ Selected column is not numerical")
-        
