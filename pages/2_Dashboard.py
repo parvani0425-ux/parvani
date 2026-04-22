@@ -670,3 +670,387 @@ if df is not None:
         st.markdown(f'<div class="insight-row" style="margin-top:12px;">📌 Distribution is <b>{skew_note}</b>. Std Dev of <b>{round(d.std(),2)}</b> indicates {"low variability — stable data." if d.std() < d.mean()*0.3 else "high variability."}</div>', unsafe_allow_html=True)
     elif col_q2:
         st.warning("⚠️ Selected column is not numerical")
+
+    st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
+
+    # ════════════════════════════════════════════════════════════════════
+    # ── 🧠 ML BRAIN — MULTI-MODEL TRAINING & PREDICTION ENGINE
+    # ════════════════════════════════════════════════════════════════════
+    if len(num_cols) >= 2:
+
+        st.markdown("""
+        <div style='
+            background: linear-gradient(135deg, rgba(123,51,126,0.18), rgba(102,103,171,0.12));
+            border: 1px solid rgba(102,103,171,0.3);
+            border-radius: 20px;
+            padding: 28px 28px 20px;
+            margin: 8px 0 20px;
+            position: relative;
+            overflow: hidden;
+        '>
+            <div style='
+                position: absolute; top: 0; left: 0; right: 0; height: 3px;
+                background: linear-gradient(90deg, #7B337E, #6667AB, #F5D5E0, #6667AB, #7B337E);
+            '></div>
+            <div style='font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#6667AB;font-weight:600;margin-bottom:8px;'>Advanced Analytics</div>
+            <div style='font-family:Playfair Display,serif;font-size:26px;color:#F5D5E0;font-weight:900;margin-bottom:8px;'>
+                🧠 ML Brain
+            </div>
+            <div style='font-size:13px;color:rgba(245,213,224,0.5);line-height:1.6;max-width:600px;'>
+                Train, compare, and evaluate multiple machine learning models on your dataset.
+                Select your target variable, choose models, and get instant performance metrics.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        from sklearn.linear_model import LinearRegression, Ridge, Lasso
+        from sklearn.tree import DecisionTreeRegressor
+        from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+        from sklearn.neighbors import KNeighborsRegressor
+        from sklearn.svm import SVR
+        from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+        from sklearn.preprocessing import LabelEncoder as LE2
+        import warnings
+        warnings.filterwarnings("ignore")
+
+        # ── Step 1: Configure ──
+        st.markdown('<div class="section-head">⚙️ Step 1 — Configure Your Model</div>', unsafe_allow_html=True)
+
+        cfg1, cfg2, cfg3 = st.columns(3)
+
+        with cfg1:
+            target_col = st.selectbox(
+                "🎯 Target Variable (what to predict)",
+                num_cols,
+                help="The column your model will learn to predict"
+            )
+
+        with cfg2:
+            feature_cols = [c for c in num_cols if c != target_col]
+            selected_features = st.multiselect(
+                "📊 Feature Variables (inputs)",
+                feature_cols,
+                default=feature_cols[:min(3, len(feature_cols))],
+                help="Columns used as inputs to predict the target"
+            )
+
+        with cfg3:
+            test_size = st.slider("🔀 Test Split %", 10, 40, 20, 5,
+                                   help="% of data held out for testing") / 100
+
+        # ── Model selector ──
+        st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+        st.markdown('<div style="font-size:12px;color:rgba(245,213,224,0.45);margin-bottom:10px;letter-spacing:1px;">SELECT MODELS TO TRAIN</div>', unsafe_allow_html=True)
+
+        MODEL_OPTIONS = {
+            "Linear Regression": LinearRegression(),
+            "Ridge Regression": Ridge(alpha=1.0),
+            "Lasso Regression": Lasso(alpha=0.1),
+            "Decision Tree": DecisionTreeRegressor(max_depth=5),
+            "Random Forest": RandomForestRegressor(n_estimators=50, max_depth=5),
+            "Gradient Boosting": GradientBoostingRegressor(n_estimators=50),
+            "K-Nearest Neighbors": KNeighborsRegressor(n_neighbors=3),
+            "Support Vector Machine": SVR(kernel="rbf"),
+        }
+
+        mc1, mc2, mc3, mc4 = st.columns(4)
+        mc5, mc6, mc7, mc8 = st.columns(4)
+        col_pairs = [(mc1,"Linear Regression"),(mc2,"Ridge Regression"),(mc3,"Lasso Regression"),
+                     (mc4,"Decision Tree"),(mc5,"Random Forest"),(mc6,"Gradient Boosting"),
+                     (mc7,"K-Nearest Neighbors"),(mc8,"Support Vector Machine")]
+
+        selected_models = []
+        for col, mname in col_pairs:
+            with col:
+                default_on = mname in ["Linear Regression","Random Forest","Decision Tree"]
+                if st.checkbox(mname, value=default_on, key=f"ml_{mname}"):
+                    selected_models.append(mname)
+
+        st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
+
+        # ── Train button ──
+        train_btn = st.button("🚀  Train All Selected Models", key="train_ml")
+
+        if train_btn and selected_features and selected_models:
+
+            # ── Prepare data ──
+            df_ml = df.copy()
+
+            # Encode any remaining object cols just in case
+            for c in df_ml.select_dtypes(include="object").columns:
+                df_ml[c] = LE2().fit_transform(df_ml[c].astype(str))
+
+            X_ml = df_ml[selected_features].fillna(0)
+            Y_ml = df_ml[target_col].fillna(0)
+
+            if len(X_ml) < 6:
+                st.warning("⚠️ Dataset too small to train reliably. Need at least 6 rows.")
+            else:
+                Xtr_ml, Xte_ml, Ytr_ml, Yte_ml = train_test_split(
+                    X_ml, Y_ml, test_size=test_size, random_state=42
+                )
+
+                results = []
+                predictions_store = {}
+
+                with st.spinner("Training models..."):
+                    for mname in selected_models:
+                        try:
+                            mdl_i = MODEL_OPTIONS[mname]
+                            mdl_i.fit(Xtr_ml, Ytr_ml)
+                            preds_i = mdl_i.predict(Xte_ml)
+
+                            r2_i   = round(float(r2_score(Yte_ml, preds_i)), 4)
+                            mae_i  = round(float(mean_absolute_error(Yte_ml, preds_i)), 4)
+                            rmse_i = round(float(np.sqrt(mean_squared_error(Yte_ml, preds_i))), 4)
+
+                            results.append({
+                                "Model": mname,
+                                "R² Score": r2_i,
+                                "MAE": mae_i,
+                                "RMSE": rmse_i,
+                                "Status": "✅ Good" if r2_i > 0.6 else "⚠️ Fair" if r2_i > 0.2 else "❌ Poor"
+                            })
+                            predictions_store[mname] = (preds_i, Yte_ml.values, r2_i)
+                        except Exception as e:
+                            results.append({
+                                "Model": mname, "R² Score": None,
+                                "MAE": None, "RMSE": None, "Status": f"Error: {e}"
+                            })
+
+                # ── Step 2: Results ──
+                st.markdown('<div class="section-head">📊 Step 2 — Model Performance Comparison</div>', unsafe_allow_html=True)
+
+                results_df = pd.DataFrame(results)
+                valid = results_df[results_df["R² Score"].notna()].copy()
+
+                # ── Leaderboard cards ──
+                if not valid.empty:
+                    best = valid.sort_values("R² Score", ascending=False).iloc[0]
+                    worst = valid.sort_values("R² Score", ascending=True).iloc[0]
+
+                    lb1, lb2, lb3 = st.columns(3)
+                    lb1.markdown(f"""
+                    <div class="kpi-card" style="border-color:rgba(123,51,126,0.5);">
+                        <div class="kpi-label">🏆 Best Model</div>
+                        <div class="kpi-value" style="font-size:16px;">{best['Model']}</div>
+                        <div class="kpi-sub">R² = {best['R² Score']}</div>
+                    </div>""", unsafe_allow_html=True)
+                    lb2.markdown(f"""
+                    <div class="kpi-card">
+                        <div class="kpi-label">Best R² Score</div>
+                        <div class="kpi-value">{best['R² Score']}</div>
+                        <div class="kpi-sub">explains {round(best['R² Score']*100,1)}% variance</div>
+                    </div>""", unsafe_allow_html=True)
+                    lb3.markdown(f"""
+                    <div class="kpi-card">
+                        <div class="kpi-label">Best MAE</div>
+                        <div class="kpi-value">{best['MAE']}</div>
+                        <div class="kpi-sub">average prediction error</div>
+                    </div>""", unsafe_allow_html=True)
+
+                    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+
+                    # ── Results table ──
+                    st.markdown('<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(102,103,171,0.6);margin-bottom:10px;">All Models — Performance Table</div>', unsafe_allow_html=True)
+                    st.dataframe(
+                        results_df.sort_values("R² Score", ascending=False),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+                    st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
+
+                    # ── Step 3: Visual Comparison ──
+                    st.markdown('<div class="section-head">📈 Step 3 — Visual Comparison</div>', unsafe_allow_html=True)
+
+                    vc1, vc2 = st.columns(2)
+
+                    with vc1:
+                        # R² Bar chart
+                        st.markdown('<div class="story-chart-title">R² Score — Higher is Better</div>', unsafe_allow_html=True)
+                        fig_r2 = px.bar(
+                            valid.sort_values("R² Score", ascending=True),
+                            x="R² Score", y="Model", orientation="h",
+                            color="R² Score",
+                            color_continuous_scale=[[0,"#420D4B"],[0.5,"#6667AB"],[1,"#F5D5E0"]],
+                            text="R² Score"
+                        )
+                        fig_r2.update_layout(**PLOT_LAYOUT, height=280, showlegend=False,
+                                             coloraxis_showscale=False)
+                        fig_r2.update_traces(textposition="outside", textfont_size=10)
+                        st.plotly_chart(fig_r2, use_container_width=True, key="r2bar")
+
+                    with vc2:
+                        # MAE comparison
+                        st.markdown('<div class="story-chart-title">MAE — Lower is Better</div>', unsafe_allow_html=True)
+                        fig_mae = px.bar(
+                            valid.sort_values("MAE", ascending=False),
+                            x="MAE", y="Model", orientation="h",
+                            color="MAE",
+                            color_continuous_scale=[[0,"#F5D5E0"],[0.5,"#6667AB"],[1,"#420D4B"]],
+                            text="MAE"
+                        )
+                        fig_mae.update_layout(**PLOT_LAYOUT, height=280, showlegend=False,
+                                               coloraxis_showscale=False)
+                        fig_mae.update_traces(textposition="outside", textfont_size=10)
+                        st.plotly_chart(fig_mae, use_container_width=True, key="maebar")
+
+                    # ── Actual vs Predicted for best model ──
+                    st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="section-head">🎯 Step 4 — Best Model: Actual vs Predicted</div>', unsafe_allow_html=True)
+
+                    best_name = best["Model"]
+                    if best_name in predictions_store:
+                        preds_best, actual_best, r2_best = predictions_store[best_name]
+
+                        avp1, avp2 = st.columns(2)
+
+                        with avp1:
+                            st.markdown(f'<div class="story-chart-title">Actual vs Predicted — {best_name}</div>', unsafe_allow_html=True)
+                            avp_df = pd.DataFrame({"Actual": actual_best, "Predicted": preds_best})
+                            fig_avp = px.scatter(avp_df, x="Actual", y="Predicted",
+                                                  color_discrete_sequence=[COLORS[0]], opacity=0.7)
+                            # Perfect prediction line
+                            mn = min(actual_best.min(), preds_best.min())
+                            mx = max(actual_best.max(), preds_best.max())
+                            fig_avp.add_trace(go.Scatter(x=[mn,mx], y=[mn,mx], mode="lines",
+                                                          name="Perfect Fit",
+                                                          line=dict(color="#6667AB", width=2, dash="dash")))
+                            fig_avp.update_layout(**PLOT_LAYOUT, height=260)
+                            st.plotly_chart(fig_avp, use_container_width=True, key="avp1")
+                            st.markdown(f'<div class="insight-row">📌 Points on the dashed line = perfect predictions. Closer to line = better model. R² = <b>{r2_best}</b></div>', unsafe_allow_html=True)
+
+                        with avp2:
+                            st.markdown(f'<div class="story-chart-title">Residuals — {best_name}</div>', unsafe_allow_html=True)
+                            res_best = actual_best - preds_best
+                            fig_res_best = px.histogram(x=res_best, nbins=20,
+                                                         color_discrete_sequence=[COLORS[4]])
+                            fig_res_best.update_layout(**PLOT_LAYOUT, height=260,
+                                                        xaxis_title="Residual (Actual − Predicted)",
+                                                        yaxis_title="Count")
+                            fig_res_best.add_vline(x=0, line_dash="dash",
+                                                    line_color="rgba(245,213,224,0.4)")
+                            st.plotly_chart(fig_res_best, use_container_width=True, key="res_best")
+                            res_m = round(float(np.mean(res_best)), 3)
+                            res_s = round(float(np.std(res_best)), 3)
+                            sym = "symmetric ✅ — unbiased model" if abs(res_m) < res_s*0.15 else "skewed ⚠️ — model has bias"
+                            st.markdown(f'<div class="insight-row">📌 Mean error = <b>{res_m}</b> · Std = <b>{res_s}</b> · Shape: <b>{sym}</b></div>', unsafe_allow_html=True)
+
+                    st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
+
+                    # ── Step 5: Feature Importance ──
+                    st.markdown('<div class="section-head">⭐ Step 5 — Feature Importance</div>', unsafe_allow_html=True)
+
+                    fi_shown = False
+                    for mname_fi in ["Random Forest", "Gradient Boosting", "Decision Tree"]:
+                        if mname_fi in selected_models and mname_fi in predictions_store:
+                            try:
+                                mdl_fi = MODEL_OPTIONS[mname_fi]
+                                importances = mdl_fi.feature_importances_
+                                fi_df = pd.DataFrame({
+                                    "Feature": selected_features,
+                                    "Importance": importances
+                                }).sort_values("Importance", ascending=True)
+
+                                st.markdown(f'<div class="story-chart-title">Feature Importance — {mname_fi}</div>', unsafe_allow_html=True)
+                                fig_fi = px.bar(fi_df, x="Importance", y="Feature", orientation="h",
+                                                 color="Importance",
+                                                 color_continuous_scale=[[0,"#420D4B"],[0.5,"#6667AB"],[1,"#F5D5E0"]],
+                                                 text=fi_df["Importance"].round(3))
+                                fig_fi.update_layout(**PLOT_LAYOUT, height=max(200, len(selected_features)*45),
+                                                      coloraxis_showscale=False)
+                                fig_fi.update_traces(textposition="outside", textfont_size=10)
+                                st.plotly_chart(fig_fi, use_container_width=True, key=f"fi_{mname_fi}")
+
+                                top_feat = fi_df.sort_values("Importance", ascending=False).iloc[0]
+                                st.markdown(f'<div class="insight-row">⭐ Most important feature: <b>{top_feat["Feature"]}</b> with importance score <b>{round(top_feat["Importance"],3)}</b> — this variable has the strongest influence on predicting <b>{target_col}</b>.</div>', unsafe_allow_html=True)
+                                fi_shown = True
+                                break
+                            except:
+                                pass
+
+                    if not fi_shown:
+                        # Fallback: correlation-based importance
+                        if len(selected_features) > 0:
+                            corr_imp = abs(df_ml[selected_features].corrwith(df_ml[target_col])).sort_values(ascending=True)
+                            fi_df2 = pd.DataFrame({"Feature": corr_imp.index, "Correlation": corr_imp.values})
+                            st.markdown('<div class="story-chart-title">Feature Importance (Correlation-Based)</div>', unsafe_allow_html=True)
+                            fig_fi2 = px.bar(fi_df2, x="Correlation", y="Feature", orientation="h",
+                                              color="Correlation",
+                                              color_continuous_scale=[[0,"#420D4B"],[0.5,"#6667AB"],[1,"#F5D5E0"]],
+                                              text=fi_df2["Correlation"].round(3))
+                            fig_fi2.update_layout(**PLOT_LAYOUT, height=max(200, len(selected_features)*45),
+                                                   coloraxis_showscale=False)
+                            fig_fi2.update_traces(textposition="outside", textfont_size=10)
+                            st.plotly_chart(fig_fi2, use_container_width=True, key="fi_corr")
+
+                    st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
+
+                    # ── Step 6: Predict on New Input ──
+                    st.markdown('<div class="section-head">🔮 Step 6 — Predict New Values</div>', unsafe_allow_html=True)
+                    st.markdown('<div style="font-size:12px;color:rgba(245,213,224,0.4);margin-bottom:16px;">Enter values below and get an instant prediction from the best model</div>', unsafe_allow_html=True)
+
+                    pred_cols = st.columns(min(len(selected_features), 4))
+                    input_vals = {}
+                    for idx_f, feat in enumerate(selected_features):
+                        with pred_cols[idx_f % 4]:
+                            col_min = float(df_ml[feat].min())
+                            col_max = float(df_ml[feat].max())
+                            col_mean = float(df_ml[feat].mean())
+                            input_vals[feat] = st.number_input(
+                                f"{feat}",
+                                min_value=col_min,
+                                max_value=col_max,
+                                value=col_mean,
+                                key=f"pred_input_{feat}"
+                            )
+
+                    if st.button("🔮  Generate Prediction", key="predict_btn"):
+                        try:
+                            best_mdl = MODEL_OPTIONS[best_name]
+                            input_array = np.array([[input_vals[f] for f in selected_features]])
+                            prediction = best_mdl.predict(input_array)[0]
+
+                            st.markdown(f"""
+                            <div style='
+                                background: linear-gradient(135deg, rgba(123,51,126,0.2), rgba(102,103,171,0.15));
+                                border: 1px solid rgba(102,103,171,0.4);
+                                border-radius: 16px;
+                                padding: 28px;
+                                text-align: center;
+                                margin-top: 16px;
+                                position: relative;
+                                overflow: hidden;
+                            '>
+                                <div style='position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#7B337E,#6667AB,#F5D5E0);'></div>
+                                <div style='font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#6667AB;margin-bottom:8px;'>Predicted Value</div>
+                                <div style='font-family:Playfair Display,serif;font-size:52px;color:#F5D5E0;font-weight:900;line-height:1;margin-bottom:10px;'>
+                                    {round(prediction, 4)}
+                                </div>
+                                <div style='font-size:13px;color:rgba(245,213,224,0.5);'>
+                                    Target: <b style='color:#F5D5E0;'>{target_col}</b> &nbsp;·&nbsp; Model: <b style='color:#6667AB;'>{best_name}</b>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        except Exception as e:
+                            st.error(f"Prediction error: {e}")
+
+                    # ── ML Insights Summary ──
+                    st.markdown('<div class="moon-div"></div>', unsafe_allow_html=True)
+                    st.markdown('<div class="section-head">🧠 ML Brain Summary</div>', unsafe_allow_html=True)
+
+                    ml_insights = [
+                        f"Trained <b>{len(selected_models)}</b> models on <b>{len(selected_features)}</b> features to predict <b>{target_col}</b>.",
+                        f"Best performing model: <b>{best['Model']}</b> with R² = <b>{best['R² Score']}</b>.",
+                        f"Best model explains <b>{round(best['R² Score']*100,1)}%</b> of variance in <b>{target_col}</b>." if best['R² Score'] > 0 else f"Models have low R² — consider uploading a larger dataset for reliable predictions.",
+                        f"Training set: <b>{len(Xtr_ml)}</b> rows · Test set: <b>{len(Xte_ml)}</b> rows ({int(test_size*100)}% split).",
+                        f"Lowest prediction error (MAE): <b>{best['MAE']}</b> from <b>{best['Model']}</b> — meaning predictions are off by this amount on average.",
+                    ]
+                    for ins in ml_insights:
+                        st.markdown(f'<div class="insight-row">🧠 &nbsp; {ins}</div>', unsafe_allow_html=True)
+
+        elif train_btn and not selected_features:
+            st.warning("⚠️ Please select at least one feature variable to train.")
+        elif train_btn and not selected_models:
+            st.warning("⚠️ Please select at least one model to train.")
